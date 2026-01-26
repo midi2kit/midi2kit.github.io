@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture Overview — MIDI2Kit Guides</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-code: #0d1117;
+            --text-primary: #f5f5f7; --text-secondary: #a1a1a6; --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff; --accent-green: #30d158; --accent-purple: #bf5af2; --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-weight: 600; }
+        .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1c1c1e; }
+        .docs-layout { display: grid; grid-template-columns: 260px 1fr; max-width: 1400px; margin: 0 auto; padding-top: 64px; min-height: 100vh; }
+        .sidebar { position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; padding: 32px 24px; border-right: 1px solid var(--border-color); }
+        .sidebar-section { margin-bottom: 32px; }
+        .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 12px; }
+        .sidebar-links { list-style: none; }
+        .sidebar-links li { margin-bottom: 4px; }
+        .sidebar-links a { display: block; padding: 8px 12px; color: var(--text-secondary); text-decoration: none; font-size: 14px; border-radius: 8px; transition: all 0.2s; }
+        .sidebar-links a:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .sidebar-links a.active { background: rgba(10, 132, 255, 0.15); color: var(--accent-blue); }
+        .docs-content { padding: 48px 64px; max-width: 900px; }
+        .docs-content h1 { font-size: 36px; font-weight: 700; margin-bottom: 16px; }
+        .docs-content .lead { font-size: 18px; color: var(--text-secondary); margin-bottom: 48px; }
+        .docs-content h2 { font-size: 24px; font-weight: 600; margin-top: 48px; margin-bottom: 16px; padding-top: 24px; border-top: 1px solid var(--border-color); }
+        .docs-content h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+        .docs-content h3 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+        .docs-content p { margin-bottom: 16px; color: var(--text-secondary); }
+        .docs-content ul { margin-bottom: 16px; padding-left: 24px; color: var(--text-secondary); }
+        .docs-content li { margin-bottom: 8px; }
+        .docs-content code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent-blue); }
+        .diagram { background: var(--bg-secondary); border-radius: 12px; padding: 32px; margin-bottom: 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
+        .module-box { display: inline-block; padding: 8px 16px; background: var(--bg-tertiary); border-radius: 8px; margin: 4px; border: 1px solid var(--border-color); }
+        .module-box.blue { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .module-box.green { border-color: var(--accent-green); color: var(--accent-green); }
+        .module-box.purple { border-color: var(--accent-purple); color: var(--accent-purple); }
+        .module-box.orange { border-color: var(--accent-orange); color: var(--accent-orange); }
+        @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 32px 24px; } }
+    </style>
+</head>
+<body>
+    <nav><div class="nav-container"><a href="../" class="nav-logo"><div class="nav-logo-icon">M2</div><span>MIDI2Kit</span></a></div></nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Guides</div>
+                <ul class="sidebar-links">
+                    <li><a href="architecture.html" class="active">Architecture</a></li>
+                    <li><a href="property-exchange.html">Property Exchange</a></li>
+                    <li><a href="testing.html">Testing</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">On This Page</div>
+                <ul class="sidebar-links">
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#layers">Layer Architecture</a></li>
+                    <li><a href="#data-flow">Data Flow</a></li>
+                    <li><a href="#design-decisions">Design Decisions</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="docs-content">
+            <h1>Architecture Overview</h1>
+            <p class="lead">How MIDI2Kit's modules work together and the design principles behind the library.</p>
+
+            <h2 id="overview">Module Overview</h2>
+
+            <div class="diagram">
+┌─────────────────────────────────────────────────────────────┐
+│                      Your Application                        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         MIDI2Kit                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │  CIManager  │──│  PEManager  │  │  CIManagerPEExtension│  │
+│  │  (Discovery)│  │  (Property  │  │  (Convenience)      │  │
+│  └─────────────┘  │  Exchange)  │  └─────────────────────┘  │
+│                   └─────────────┘                            │
+└─────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+┌─────────────┐       ┌─────────────┐       ┌─────────────┐
+│  MIDI2CI    │       │  MIDI2PE    │       │  MIDI2Core  │
+│  Discovery  │       │  Property   │       │  UMP Types  │
+│  Messages   │       │  Exchange   │       │  MUID       │
+└─────────────┘       └─────────────┘       └─────────────┘
+        │                     │                     │
+        └─────────────────────┼─────────────────────┘
+                              ▼
+                    ┌─────────────────┐
+                    │  MIDI2Transport │
+                    │  (MIDITransport │
+                    │   Protocol)     │
+                    └─────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+    ┌─────────────────┐             ┌─────────────────┐
+    │ CoreMIDITransport│             │ MockMIDITransport│
+    │ (Production)    │             │ (Testing)       │
+    └─────────────────┘             └─────────────────┘
+              │
+              ▼
+        ┌───────────┐
+        │  CoreMIDI │
+        │  (Apple)  │
+        └───────────┘
+            </div>
+
+            <h2 id="layers">Layer Architecture</h2>
+
+            <h3>Layer 1: Foundation (MIDI2Core)</h3>
+            <p>Zero dependencies. Contains pure data types and utilities:</p>
+            <ul>
+                <li><strong>UMP Types</strong>: Message types, status codes, groups, channels</li>
+                <li><strong>MUID</strong>: MIDI Unique Identifier (28-bit)</li>
+                <li><strong>DeviceIdentity</strong>: Manufacturer, family, model, version</li>
+                <li><strong>Value Scaling</strong>: MIDI 1.0 ↔ 2.0 conversion</li>
+                <li><strong>Mcoded7</strong>: 8-bit to 7-bit encoding</li>
+            </ul>
+
+            <h3>Layer 2: Transport (MIDI2Transport)</h3>
+            <p>Abstraction layer for MIDI I/O:</p>
+            <ul>
+                <li><strong>MIDITransport Protocol</strong>: Common interface for all implementations</li>
+                <li><strong>CoreMIDITransport</strong>: Production implementation using Apple's CoreMIDI</li>
+                <li><strong>MockMIDITransport</strong>: Test implementation for unit testing</li>
+            </ul>
+
+            <h3>Layer 3: Protocol (MIDI2CI, MIDI2PE)</h3>
+            <p>MIDI-CI protocol implementation:</p>
+            <ul>
+                <li><strong>MIDI2CI</strong>: Discovery, message building/parsing</li>
+                <li><strong>MIDI2PE</strong>: Property Exchange, chunking, subscriptions</li>
+            </ul>
+
+            <h3>Layer 4: High-Level API (MIDI2Kit)</h3>
+            <p>User-facing convenience layer:</p>
+            <ul>
+                <li><strong>CIManager</strong>: Automatic device discovery and lifecycle</li>
+                <li><strong>PEManager</strong>: Async/await Property Exchange API</li>
+                <li><strong>CIManagerPEExtension</strong>: Convenience methods combining CI + PE</li>
+            </ul>
+
+            <h2 id="data-flow">Data Flow</h2>
+
+            <h3>Outgoing (Send)</h3>
+            <div class="diagram">
+Application
+    │
+    │ peManager.get("DeviceInfo", from: muid)
+    ▼
+PEManager
+    │ Build PE Get Inquiry message
+    │ Allocate Request ID
+    │ Set up timeout
+    ▼
+CIMessageBuilder
+    │ Build SysEx bytes
+    ▼
+MIDITransport.send()
+    │
+    ▼
+CoreMIDI / Mock
+            </div>
+
+            <h3>Incoming (Receive)</h3>
+            <div class="diagram">
+CoreMIDI / Mock
+    │
+    │ MIDIReceivedData
+    ▼
+MIDITransport.received (AsyncStream)
+    │
+    ▼
+CIManager / PEManager
+    │ Parse message type
+    │ Route to handler
+    ▼
+CIMessageParser
+    │ Extract fields
+    │ Validate MUID
+    ▼
+Handler
+    │ Discovery: Update device list, emit event
+    │ PE Reply: Assemble chunks, resume continuation
+    ▼
+Application (via async/await or event stream)
+            </div>
+
+            <h2 id="design-decisions">Design Decisions</h2>
+
+            <h3>Actor-based Concurrency</h3>
+            <p>Both <code>CIManager</code> and <code>PEManager</code> are actors, providing:</p>
+            <ul>
+                <li>Thread-safe state management without explicit locks</li>
+                <li>Clear ownership of mutable state</li>
+                <li>Natural integration with async/await</li>
+            </ul>
+
+            <h3>Protocol-based Transport</h3>
+            <p>The <code>MIDITransport</code> protocol enables:</p>
+            <ul>
+                <li>Testing without real MIDI hardware</li>
+                <li>Future support for other transports (USB, network)</li>
+                <li>Clean separation of concerns</li>
+            </ul>
+
+            <h3>Destination Resolver Pattern</h3>
+            <p>PEManager uses a resolver closure to decouple from CIManager:</p>
+            <ul>
+                <li>PEManager doesn't depend on CIManager directly</li>
+                <li>Allows custom resolution strategies</li>
+                <li>Enables testing with mock destinations</li>
+            </ul>
+
+            <h3>Event Streams vs. Delegates</h3>
+            <p>We use <code>AsyncStream</code> instead of delegates because:</p>
+            <ul>
+                <li>Better integration with Swift's structured concurrency</li>
+                <li>No callback hell or retain cycles</li>
+                <li>Natural for-await-in syntax</li>
+            </ul>
+
+            <h3>Single Source of Truth</h3>
+            <p>Responsibilities are clearly separated:</p>
+            <ul>
+                <li><strong>PEManager</strong>: Timeouts, continuations, response delivery</li>
+                <li><strong>PETransactionManager</strong>: Request ID allocation, chunk assembly</li>
+                <li><strong>CIManager</strong>: Device lifecycle, MUID → destination mapping</li>
+            </ul>
+        </main>
+    </div>
+</body>
+</html>

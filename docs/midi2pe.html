@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI2PE — MIDI2Kit Documentation</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-code: #0d1117;
+            --text-primary: #f5f5f7; --text-secondary: #a1a1a6; --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff; --accent-green: #30d158; --accent-purple: #bf5af2; --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; gap: 32px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-weight: 600; }
+        .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1c1c1e; }
+        .docs-layout { display: grid; grid-template-columns: 260px 1fr; max-width: 1400px; margin: 0 auto; padding-top: 64px; min-height: 100vh; }
+        .sidebar { position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; padding: 32px 24px; border-right: 1px solid var(--border-color); }
+        .sidebar-section { margin-bottom: 32px; }
+        .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 12px; }
+        .sidebar-links { list-style: none; }
+        .sidebar-links li { margin-bottom: 4px; }
+        .sidebar-links a { display: block; padding: 8px 12px; color: var(--text-secondary); text-decoration: none; font-size: 14px; border-radius: 8px; transition: all 0.2s; }
+        .sidebar-links a:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .sidebar-links a.active { background: rgba(191, 90, 242, 0.15); color: var(--accent-purple); }
+        .docs-content { padding: 48px 64px; max-width: 900px; }
+        .docs-content h1 { font-size: 36px; font-weight: 700; margin-bottom: 8px; }
+        .docs-content .module-badge { display: inline-block; padding: 4px 12px; background: rgba(191, 90, 242, 0.15); color: var(--accent-purple); border-radius: 6px; font-size: 13px; font-weight: 500; margin-bottom: 24px; }
+        .docs-content .lead { font-size: 18px; color: var(--text-secondary); margin-bottom: 48px; }
+        .docs-content h2 { font-size: 24px; font-weight: 600; margin-top: 48px; margin-bottom: 16px; padding-top: 24px; border-top: 1px solid var(--border-color); }
+        .docs-content h3 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+        .docs-content p { margin-bottom: 16px; color: var(--text-secondary); }
+        .docs-content ul { margin-bottom: 16px; padding-left: 24px; color: var(--text-secondary); }
+        .docs-content li { margin-bottom: 8px; }
+        .docs-content code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent-purple); }
+        .docs-content pre { background: var(--bg-code); border-radius: 12px; padding: 20px; overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--border-color); }
+        .docs-content pre code { background: none; padding: 0; font-size: 13px; line-height: 1.7; color: var(--text-primary); }
+        .docs-content table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        .docs-content th, .docs-content td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .docs-content th { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); background: var(--bg-secondary); }
+        .docs-content td { font-size: 14px; color: var(--text-secondary); }
+        .api-signature { background: var(--bg-code); border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; border-left: 3px solid var(--accent-purple); }
+        .api-signature code { background: none; color: var(--text-primary); }
+        .note { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+        .note p { margin: 0; color: var(--text-secondary); }
+        .note strong { color: var(--accent-blue); }
+        @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 32px 24px; } }
+    </style>
+</head>
+<body>
+    <nav><div class="nav-container"><a href="../" class="nav-logo"><div class="nav-logo-icon">M2</div><span>MIDI2Kit</span></a></div></nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">API Reference</div>
+                <ul class="sidebar-links">
+                    <li><a href="midi2core.html">MIDI2Core</a></li>
+                    <li><a href="midi2transport.html">MIDI2Transport</a></li>
+                    <li><a href="midi2ci.html">MIDI2CI</a></li>
+                    <li><a href="midi2pe.html" class="active">MIDI2PE</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">On This Page</div>
+                <ul class="sidebar-links">
+                    <li><a href="#pemanager">PEManager</a></li>
+                    <li><a href="#get-operations">GET Operations</a></li>
+                    <li><a href="#set-operations">SET Operations</a></li>
+                    <li><a href="#subscriptions">Subscriptions</a></li>
+                    <li><a href="#typed-api">Typed JSON API</a></li>
+                    <li><a href="#error-handling">Error Handling</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="docs-content">
+            <h1>MIDI2PE</h1>
+            <span class="module-badge">Property Exchange Module</span>
+            <p class="lead">High-level async/await API for MIDI 2.0 Property Exchange: GET, SET, and Subscribe operations with automatic chunking and timeout handling.</p>
+
+            <h2 id="pemanager">PEManager</h2>
+            <p>The main actor for Property Exchange operations. Handles request/response lifecycle, multi-chunk assembly, timeouts, and subscriptions.</p>
+
+            <div class="api-signature">
+                <code>public actor PEManager</code>
+            </div>
+
+            <h3>Initialization</h3>
+            <pre><code class="language-swift">let peManager = PEManager(
+    transport: transport,
+    sourceMUID: ciManager.muid,
+    maxInflightPerDevice: 2,      // Max concurrent requests per device
+    logger: ConsoleLogger()        // Optional logging
+)
+
+// Connect to CIManager for automatic destination resolution
+peManager.destinationResolver = ciManager.makeDestinationResolver()
+
+// Start receiving MIDI data
+await peManager.startReceiving()</code></pre>
+
+            <h3>Lifecycle Methods</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>startReceiving()</code></td><td>Start processing incoming MIDI data</td></tr>
+                    <tr><td><code>stopReceiving()</code></td><td>Stop receiving and cancel all pending requests</td></tr>
+                </tbody>
+            </table>
+
+            <h2 id="get-operations">GET Operations</h2>
+            <p>Retrieve property values from a device.</p>
+
+            <h3>Basic GET</h3>
+            <pre><code class="language-swift">// Using MUID (requires destinationResolver)
+let response = try await peManager.get("DeviceInfo", from: device.muid)
+
+// Using PEDeviceHandle (explicit destination)
+let handle = PEDeviceHandle(muid: device.muid, destination: destID)
+let response = try await peManager.get("DeviceInfo", from: handle)</code></pre>
+
+            <h3>GET with Parameters</h3>
+            <pre><code class="language-swift">// Channel-specific resource
+let response = try await peManager.get(
+    "ChannelSettings",
+    channel: 1,
+    from: device.muid
+)
+
+// Paginated resource
+let response = try await peManager.get(
+    "ProgramList",
+    offset: 0,
+    limit: 10,
+    from: device.muid
+)
+
+// Custom timeout
+let response = try await peManager.get(
+    "LargeResource",
+    from: device.muid,
+    timeout: .seconds(30)
+)</code></pre>
+
+            <h3>Convenience Methods</h3>
+            <pre><code class="language-swift">// Get DeviceInfo (parsed)
+let deviceInfo = try await peManager.getDeviceInfo(from: device.muid)
+print("Product: \(deviceInfo.productName ?? "Unknown")")
+print("Manufacturer: \(deviceInfo.manufacturerName ?? "Unknown")")
+
+// Get ResourceList (parsed)
+let resources = try await peManager.getResourceList(from: device.muid)
+for resource in resources {
+    print("\(resource.resource): GET=\(resource.canGet ?? false)")
+}</code></pre>
+
+            <h2 id="set-operations">SET Operations</h2>
+            <p>Write property values to a device.</p>
+
+            <pre><code class="language-swift">// Set raw data
+let data = try JSONEncoder().encode(["volume": 80])
+let response = try await peManager.set(
+    "ChannelSettings",
+    data: data,
+    to: device.muid
+)
+
+// Check success
+if response.isSuccess {
+    print("Settings updated")
+} else {
+    print("Error: \(response.status)")
+}</code></pre>
+
+            <h2 id="subscriptions">Subscriptions</h2>
+            <p>Subscribe to property change notifications.</p>
+
+            <h3>Subscribe</h3>
+            <pre><code class="language-swift">// Subscribe to a resource
+let response = try await peManager.subscribe(
+    to: "CurrentProgram",
+    on: device.muid
+)
+
+if response.isSuccess, let subscribeId = response.subscribeId {
+    print("Subscribed with ID: \(subscribeId)")
+}</code></pre>
+
+            <h3>Receive Notifications</h3>
+            <pre><code class="language-swift">// Start notification stream (single listener)
+for await notification in peManager.startNotificationStream() {
+    print("Resource changed: \(notification.resource)")
+    print("Subscribe ID: \(notification.subscribeId)")
+    print("Data: \(notification.data.count) bytes")
+}</code></pre>
+
+            <h3>Unsubscribe</h3>
+            <pre><code class="language-swift">// Unsubscribe using the subscribeId
+try await peManager.unsubscribe(subscribeId: subscribeId)
+
+// Check active subscriptions
+let subs = await peManager.subscriptions
+for sub in subs {
+    print("\(sub.resource) [\(sub.subscribeId)]")
+}</code></pre>
+
+            <h2 id="typed-api">Typed JSON API</h2>
+            <p>Type-safe GET and SET with automatic JSON encoding/decoding.</p>
+
+            <h3>Typed GET</h3>
+            <pre><code class="language-swift">// Define your response type
+struct ProgramInfo: Decodable {
+    let name: String
+    let bankMSB: Int
+    let bankLSB: Int
+    let program: Int
+}
+
+// GET with automatic decoding
+let program: ProgramInfo = try await peManager.getJSON(
+    "CurrentProgram",
+    from: device.muid
+)
+print("Current program: \(program.name)")</code></pre>
+
+            <h3>Typed SET</h3>
+            <pre><code class="language-swift">// Define your request type
+struct VolumeSettings: Encodable {
+    let volume: Int
+    let pan: Int
+}
+
+// SET with automatic encoding
+let settings = VolumeSettings(volume: 80, pan: 64)
+let response = try await peManager.setJSON(
+    "ChannelSettings",
+    value: settings,
+    channel: 1,
+    to: device.muid
+)</code></pre>
+
+            <h2 id="error-handling">Error Handling</h2>
+
+            <div class="api-signature">
+                <code>public enum PEError: Error, Sendable</code>
+            </div>
+
+            <table>
+                <thead><tr><th>Case</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>timeout(resource:)</code></td><td>Request timed out</td></tr>
+                    <tr><td><code>cancelled</code></td><td>Request was cancelled</td></tr>
+                    <tr><td><code>requestIDExhausted</code></td><td>All 128 request IDs in use</td></tr>
+                    <tr><td><code>deviceError(status:message:)</code></td><td>Device returned error status</td></tr>
+                    <tr><td><code>deviceNotFound(MUID)</code></td><td>Destination resolver returned nil</td></tr>
+                    <tr><td><code>invalidResponse(String)</code></td><td>Response parsing failed</td></tr>
+                    <tr><td><code>transportError(Error)</code></td><td>MIDI transport error</td></tr>
+                    <tr><td><code>nak(PENAKDetails)</code></td><td>Device rejected request</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Error Handling Example</h3>
+            <pre><code class="language-swift">do {
+    let response = try await peManager.get("DeviceInfo", from: device.muid)
+    // Handle success
+} catch PEError.timeout(let resource) {
+    print("Timeout waiting for: \(resource)")
+} catch PEError.deviceError(let status, let message) {
+    print("Device error \(status): \(message ?? "unknown")")
+} catch PEError.deviceNotFound(let muid) {
+    print("Device not found: \(muid)")
+} catch {
+    print("Unexpected error: \(error)")
+}</code></pre>
+
+            <h2>PEResponse</h2>
+            <div class="api-signature">
+                <code>public struct PEResponse: Sendable</code>
+            </div>
+
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>status</code></td><td>Int</td><td>HTTP-style status code (200, 404, etc.)</td></tr>
+                    <tr><td><code>header</code></td><td>PEHeader?</td><td>Parsed response header</td></tr>
+                    <tr><td><code>body</code></td><td>Data</td><td>Raw response body</td></tr>
+                    <tr><td><code>decodedBody</code></td><td>Data</td><td>Mcoded7-decoded body</td></tr>
+                    <tr><td><code>bodyString</code></td><td>String?</td><td>Body as UTF-8 string</td></tr>
+                    <tr><td><code>isSuccess</code></td><td>Bool</td><td>True if status 200-299</td></tr>
+                    <tr><td><code>isError</code></td><td>Bool</td><td>True if status 400+</td></tr>
+                </tbody>
+            </table>
+
+            <div class="note">
+                <p><strong>💡 Tip:</strong> Use <code>decodedBody</code> instead of <code>body</code> when parsing JSON responses. Property Exchange data is Mcoded7-encoded for MIDI transmission, and <code>decodedBody</code> handles the decoding automatically.</p>
+            </div>
+        </main>
+    </div>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

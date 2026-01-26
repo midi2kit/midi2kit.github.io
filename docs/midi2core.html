@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI2Core — MIDI2Kit Documentation</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <link rel="stylesheet" href="../assets/docs.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-green: #30d158;
+            --accent-purple: #bf5af2;
+            --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .docs-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-top: 64px;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 64px;
+            height: calc(100vh - 64px);
+            overflow-y: auto;
+            padding: 32px 24px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .sidebar-section { margin-bottom: 32px; }
+
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        .sidebar-links { list-style: none; }
+        .sidebar-links li { margin-bottom: 4px; }
+
+        .sidebar-links a {
+            display: block;
+            padding: 8px 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-links a:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .sidebar-links a.active { background: rgba(10, 132, 255, 0.15); color: var(--accent-blue); }
+
+        .docs-content {
+            padding: 48px 64px;
+            max-width: 900px;
+        }
+
+        .docs-content h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .docs-content .module-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(10, 132, 255, 0.15);
+            color: var(--accent-blue);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+
+        .docs-content .lead {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+        }
+
+        .docs-content h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .docs-content h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .docs-content p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .docs-content code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--accent-blue);
+        }
+
+        .docs-content pre {
+            background: var(--bg-code);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .docs-content pre code {
+            background: none;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        .docs-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .docs-content th, .docs-content td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .docs-content th {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            background: var(--bg-secondary);
+        }
+
+        .docs-content td { font-size: 14px; color: var(--text-secondary); }
+
+        .api-signature {
+            background: var(--bg-code);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .api-signature code {
+            background: none;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .docs-layout { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .docs-content { padding: 32px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="../" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Getting Started</div>
+                <ul class="sidebar-links">
+                    <li><a href="installation.html">Installation</a></li>
+                    <li><a href="quickstart.html">Quick Start</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">API Reference</div>
+                <ul class="sidebar-links">
+                    <li><a href="midi2core.html" class="active">MIDI2Core</a></li>
+                    <li><a href="midi2transport.html">MIDI2Transport</a></li>
+                    <li><a href="midi2ci.html">MIDI2CI</a></li>
+                    <li><a href="midi2pe.html">MIDI2PE</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">On This Page</div>
+                <ul class="sidebar-links">
+                    <li><a href="#ump-types">UMP Types</a></li>
+                    <li><a href="#muid">MUID</a></li>
+                    <li><a href="#device-identity">DeviceIdentity</a></li>
+                    <li><a href="#value-scaling">Value Scaling</a></li>
+                    <li><a href="#mcoded7">Mcoded7</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="docs-content">
+            <h1>MIDI2Core</h1>
+            <span class="module-badge">Foundation Module</span>
+            <p class="lead">Core types and utilities for MIDI 2.0: UMP message types, MUID, DeviceIdentity, and value scaling.</p>
+
+            <h2 id="ump-types">UMP Message Types</h2>
+            <p>MIDI 2.0 uses Universal MIDI Packet (UMP) as the transport format. Each packet has a message type that determines its size and interpretation.</p>
+
+            <h3>UMPMessageType</h3>
+            <div class="api-signature">
+                <code>public enum UMPMessageType: UInt8, Sendable, CaseIterable</code>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Case</th>
+                        <th>Value</th>
+                        <th>Size</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>utility</code></td><td>0x0</td><td>32-bit</td><td>NOOP, JR Clock, JR Timestamp</td></tr>
+                    <tr><td><code>system</code></td><td>0x1</td><td>32-bit</td><td>System Real Time / Common</td></tr>
+                    <tr><td><code>midi1ChannelVoice</code></td><td>0x2</td><td>32-bit</td><td>MIDI 1.0 Channel Voice (wrapped)</td></tr>
+                    <tr><td><code>data64</code></td><td>0x3</td><td>64-bit</td><td>SysEx7</td></tr>
+                    <tr><td><code>midi2ChannelVoice</code></td><td>0x4</td><td>64-bit</td><td>MIDI 2.0 Channel Voice</td></tr>
+                    <tr><td><code>data128</code></td><td>0x5</td><td>128-bit</td><td>SysEx8, Mixed Data Set</td></tr>
+                    <tr><td><code>flexData</code></td><td>0xD</td><td>128-bit</td><td>Flex Data</td></tr>
+                    <tr><td><code>umpStream</code></td><td>0xF</td><td>128-bit</td><td>UMP Stream messages</td></tr>
+                </tbody>
+            </table>
+
+            <pre><code class="language-swift">let messageType = UMPMessageType.midi2ChannelVoice
+print(messageType.wordCount)  // 2 (64-bit = 2 words)</code></pre>
+
+            <h3>MIDI2ChannelVoiceStatus</h3>
+            <p>Status codes for MIDI 2.0 Channel Voice messages (message type 0x4).</p>
+
+            <div class="api-signature">
+                <code>public enum MIDI2ChannelVoiceStatus: UInt8, Sendable, CaseIterable</code>
+            </div>
+
+            <table>
+                <thead>
+                    <tr><th>Case</th><th>Value</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>noteOff</code></td><td>0x8</td><td>Note Off</td></tr>
+                    <tr><td><code>noteOn</code></td><td>0x9</td><td>Note On</td></tr>
+                    <tr><td><code>polyPressure</code></td><td>0xA</td><td>Polyphonic Aftertouch</td></tr>
+                    <tr><td><code>controlChange</code></td><td>0xB</td><td>Control Change (32-bit value)</td></tr>
+                    <tr><td><code>programChange</code></td><td>0xC</td><td>Program Change (with bank)</td></tr>
+                    <tr><td><code>channelPressure</code></td><td>0xD</td><td>Channel Aftertouch (32-bit)</td></tr>
+                    <tr><td><code>pitchBend</code></td><td>0xE</td><td>Pitch Bend (32-bit)</td></tr>
+                    <tr><td><code>registeredController</code></td><td>0x2</td><td>RPN (32-bit value)</td></tr>
+                    <tr><td><code>assignableController</code></td><td>0x3</td><td>NRPN (32-bit value)</td></tr>
+                </tbody>
+            </table>
+
+            <h3>UMPGroup / MIDIChannel</h3>
+            <p>Type-safe wrappers for groups (0-15) and channels (0-15).</p>
+
+            <pre><code class="language-swift">let group = UMPGroup(rawValue: 0)      // Group 1
+let channel = MIDIChannel(rawValue: 9)  // Channel 10
+print(channel.displayValue)             // 10 (1-indexed for display)</code></pre>
+
+            <h2 id="muid">MUID</h2>
+            <p>MIDI Unique Identifier — a 28-bit value used to identify devices in MIDI-CI communication.</p>
+
+            <div class="api-signature">
+                <code>public struct MUID: Sendable, Hashable, CustomStringConvertible</code>
+            </div>
+
+            <h3>Properties</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>value</code></td><td>UInt32</td><td>Raw 28-bit value</td></tr>
+                    <tr><td><code>isBroadcast</code></td><td>Bool</td><td>True if 0x0FFFFFFF</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Factory Methods</h3>
+            <pre><code class="language-swift">let muid = MUID.random()      // Generate random MUID
+let broadcast = MUID.broadcast // 0x0FFFFFFF</code></pre>
+
+            <h2 id="device-identity">DeviceIdentity</h2>
+            <p>Device identification for MIDI-CI Discovery.</p>
+
+            <div class="api-signature">
+                <code>public struct DeviceIdentity: Sendable, Hashable</code>
+            </div>
+
+            <h3>Properties</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>manufacturerID</code></td><td>ManufacturerID</td><td>1-byte or 3-byte manufacturer ID</td></tr>
+                    <tr><td><code>familyID</code></td><td>UInt16</td><td>Device family</td></tr>
+                    <tr><td><code>modelID</code></td><td>UInt16</td><td>Device model</td></tr>
+                    <tr><td><code>versionID</code></td><td>UInt32</td><td>Software version (4 bytes)</td></tr>
+                </tbody>
+            </table>
+
+            <pre><code class="language-swift">let identity = DeviceIdentity(
+    manufacturerID: .extended(0x00, 0x20),  // Roland
+    familyID: 0x0001,
+    modelID: 0x0015,
+    versionID: 0x01500000  // v1.50.0.0
+)</code></pre>
+
+            <h2 id="value-scaling">Value Scaling</h2>
+            <p>Utilities for converting between MIDI 1.0 (7/14-bit) and MIDI 2.0 (32-bit) resolutions.</p>
+
+            <div class="api-signature">
+                <code>public enum UMPValueScaling</code>
+            </div>
+
+            <h3>Methods</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>scale7To32(_:)</code></td><td>7-bit (0-127) → 32-bit</td></tr>
+                    <tr><td><code>scale32To7(_:)</code></td><td>32-bit → 7-bit (0-127)</td></tr>
+                    <tr><td><code>scale14To32(_:)</code></td><td>14-bit (0-16383) → 32-bit</td></tr>
+                    <tr><td><code>scale32To14(_:)</code></td><td>32-bit → 14-bit (0-16383)</td></tr>
+                    <tr><td><code>normalizedTo32(_:)</code></td><td>0.0-1.0 → 32-bit</td></tr>
+                    <tr><td><code>to32Normalized(_:)</code></td><td>32-bit → 0.0-1.0</td></tr>
+                </tbody>
+            </table>
+
+            <pre><code class="language-swift">// Convert MIDI 1.0 velocity to MIDI 2.0
+let velocity7: UInt8 = 100
+let velocity32 = UMPValueScaling.scale7To32(velocity7)
+
+// Convert normalized value to 32-bit
+let normalized = 0.75
+let value32 = UMPValueScaling.normalizedTo32(normalized)</code></pre>
+
+            <h2 id="mcoded7">Mcoded7</h2>
+            <p>Encoding/decoding for transmitting 8-bit data over 7-bit MIDI.</p>
+
+            <div class="api-signature">
+                <code>public enum Mcoded7</code>
+            </div>
+
+            <p>Property Exchange data is encoded using Mcoded7 to ensure all bytes are 7-bit safe for MIDI transmission.</p>
+
+            <pre><code class="language-swift">// Encode 8-bit data for transmission
+let originalData = Data([0x00, 0xFF, 0x80, 0x7F])
+let encoded = Mcoded7.encode(originalData)
+
+// Decode received data
+if let decoded = Mcoded7.decode(encoded) {
+    // decoded == originalData
+}</code></pre>
+        </main>
+    </div>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

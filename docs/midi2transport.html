@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI2Transport — MIDI2Kit Documentation</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-code: #0d1117;
+            --text-primary: #f5f5f7; --text-secondary: #a1a1a6; --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff; --accent-green: #30d158; --accent-purple: #bf5af2; --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; gap: 32px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-weight: 600; }
+        .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1c1c1e; }
+        .docs-layout { display: grid; grid-template-columns: 260px 1fr; max-width: 1400px; margin: 0 auto; padding-top: 64px; min-height: 100vh; }
+        .sidebar { position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; padding: 32px 24px; border-right: 1px solid var(--border-color); }
+        .sidebar-section { margin-bottom: 32px; }
+        .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 12px; }
+        .sidebar-links { list-style: none; }
+        .sidebar-links li { margin-bottom: 4px; }
+        .sidebar-links a { display: block; padding: 8px 12px; color: var(--text-secondary); text-decoration: none; font-size: 14px; border-radius: 8px; transition: all 0.2s; }
+        .sidebar-links a:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .sidebar-links a.active { background: rgba(255, 159, 10, 0.15); color: var(--accent-orange); }
+        .docs-content { padding: 48px 64px; max-width: 900px; }
+        .docs-content h1 { font-size: 36px; font-weight: 700; margin-bottom: 8px; }
+        .docs-content .module-badge { display: inline-block; padding: 4px 12px; background: rgba(255, 159, 10, 0.15); color: var(--accent-orange); border-radius: 6px; font-size: 13px; font-weight: 500; margin-bottom: 24px; }
+        .docs-content .lead { font-size: 18px; color: var(--text-secondary); margin-bottom: 48px; }
+        .docs-content h2 { font-size: 24px; font-weight: 600; margin-top: 48px; margin-bottom: 16px; padding-top: 24px; border-top: 1px solid var(--border-color); }
+        .docs-content h3 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+        .docs-content p { margin-bottom: 16px; color: var(--text-secondary); }
+        .docs-content code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent-orange); }
+        .docs-content pre { background: var(--bg-code); border-radius: 12px; padding: 20px; overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--border-color); }
+        .docs-content pre code { background: none; padding: 0; font-size: 13px; line-height: 1.7; color: var(--text-primary); }
+        .docs-content table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        .docs-content th, .docs-content td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .docs-content th { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); background: var(--bg-secondary); }
+        .docs-content td { font-size: 14px; color: var(--text-secondary); }
+        .api-signature { background: var(--bg-code); border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; border-left: 3px solid var(--accent-orange); }
+        .api-signature code { background: none; color: var(--text-primary); }
+        .warning { background: rgba(255, 159, 10, 0.1); border: 1px solid rgba(255, 159, 10, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+        .warning p { margin: 0; color: var(--text-secondary); }
+        .warning strong { color: var(--accent-orange); }
+        @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 32px 24px; } }
+    </style>
+</head>
+<body>
+    <nav><div class="nav-container"><a href="../" class="nav-logo"><div class="nav-logo-icon">M2</div><span>MIDI2Kit</span></a></div></nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">API Reference</div>
+                <ul class="sidebar-links">
+                    <li><a href="midi2core.html">MIDI2Core</a></li>
+                    <li><a href="midi2transport.html" class="active">MIDI2Transport</a></li>
+                    <li><a href="midi2ci.html">MIDI2CI</a></li>
+                    <li><a href="midi2pe.html">MIDI2PE</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">On This Page</div>
+                <ul class="sidebar-links">
+                    <li><a href="#protocol">MIDITransport Protocol</a></li>
+                    <li><a href="#coremidi">CoreMIDITransport</a></li>
+                    <li><a href="#mock">MockMIDITransport</a></li>
+                    <li><a href="#endpoints">Endpoint Types</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="docs-content">
+            <h1>MIDI2Transport</h1>
+            <span class="module-badge">Transport Module</span>
+            <p class="lead">MIDI I/O abstraction layer. Production CoreMIDI implementation and MockTransport for testing.</p>
+
+            <h2 id="protocol">MIDITransport Protocol</h2>
+            <p>The core protocol that abstracts MIDI I/O operations. Both production and test implementations conform to this protocol.</p>
+
+            <div class="api-signature">
+                <code>public protocol MIDITransport: Sendable</code>
+            </div>
+
+            <h3>Required Methods</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>send(_:to:)</code></td><td>Send MIDI data to a destination</td></tr>
+                    <tr><td><code>connect(to:)</code></td><td>Connect to a MIDI source</td></tr>
+                    <tr><td><code>disconnect(from:)</code></td><td>Disconnect from a source</td></tr>
+                    <tr><td><code>connectToAllSources()</code></td><td>Connect to all available sources</td></tr>
+                    <tr><td><code>findMatchingDestination(for:)</code></td><td>Find destination for a source (same entity)</td></tr>
+                    <tr><td><code>shutdown()</code></td><td>Shut down and finish all streams</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Required Properties</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>received</code></td><td>AsyncStream&lt;MIDIReceivedData&gt;</td><td>Stream of incoming MIDI data</td></tr>
+                    <tr><td><code>sources</code></td><td>[MIDISourceInfo]</td><td>Available MIDI sources</td></tr>
+                    <tr><td><code>destinations</code></td><td>[MIDIDestinationInfo]</td><td>Available MIDI destinations</td></tr>
+                    <tr><td><code>setupChanged</code></td><td>AsyncStream&lt;Void&gt;</td><td>Setup change notifications</td></tr>
+                </tbody>
+            </table>
+
+            <h2 id="coremidi">CoreMIDITransport</h2>
+            <p>Production implementation using Apple's CoreMIDI framework.</p>
+
+            <div class="api-signature">
+                <code>public class CoreMIDITransport: MIDITransport</code>
+            </div>
+
+            <pre><code class="language-swift">// Create transport
+let transport = try CoreMIDITransport(clientName: "MyApp")
+
+// Connect to all sources
+try await transport.connectToAllSources()
+
+// Send data
+let data: [UInt8] = [0xF0, 0x7E, 0x7F, ...]
+try await transport.send(data, to: destinationID)
+
+// Receive data
+for await received in transport.received {
+    print("Received \(received.data.count) bytes from \(received.sourceID)")
+}
+
+// Handle setup changes (device connected/disconnected)
+for await _ in transport.setupChanged {
+    print("MIDI setup changed")
+    // Refresh device list
+}</code></pre>
+
+            <div class="warning">
+                <p><strong>⚠️ Important:</strong> <code>MIDISourceID</code> and <code>MIDIDestinationID</code> are session-scoped handles, not persistent IDs. They may change across reboots or device reconnections. For persistent identification, use <code>uniqueID</code> from endpoint info.</p>
+            </div>
+
+            <h2 id="mock">MockMIDITransport</h2>
+            <p>Mock implementation for unit testing without real MIDI hardware.</p>
+
+            <div class="api-signature">
+                <code>public actor MockMIDITransport: MIDITransport</code>
+            </div>
+
+            <pre><code class="language-swift">// Create mock transport
+let mockTransport = MockMIDITransport()
+
+// Add mock endpoints
+await mockTransport.addMockSource(MIDISourceInfo(
+    sourceID: MIDISourceID(1),
+    name: "Test Device",
+    uniqueID: 12345
+))
+await mockTransport.addMockDestination(MIDIDestinationInfo(
+    destinationID: MIDIDestinationID(1),
+    name: "Test Device",
+    uniqueID: 12345
+))
+
+// Simulate receiving data
+await mockTransport.simulateReceive(
+    [0xF0, 0x7E, 0x7F, ...],
+    from: MIDISourceID(1)
+)
+
+// Check sent messages
+let sent = await mockTransport.sentMessages
+XCTAssertEqual(sent.count, 1)
+XCTAssertEqual(sent[0].data, expectedData)</code></pre>
+
+            <h3>Test Helpers</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>simulateReceive(_:from:)</code></td><td>Simulate incoming MIDI data</td></tr>
+                    <tr><td><code>addMockSource(_:)</code></td><td>Add a mock MIDI source</td></tr>
+                    <tr><td><code>addMockDestination(_:)</code></td><td>Add a mock MIDI destination</td></tr>
+                    <tr><td><code>sentMessages</code></td><td>Array of all sent messages for verification</td></tr>
+                    <tr><td><code>clearSentMessages()</code></td><td>Clear the sent messages array</td></tr>
+                </tbody>
+            </table>
+
+            <h2 id="endpoints">Endpoint Types</h2>
+
+            <h3>MIDISourceID / MIDIDestinationID</h3>
+            <p>Type-safe wrappers for CoreMIDI endpoint references.</p>
+
+            <pre><code class="language-swift">public struct MIDISourceID: Sendable, Hashable {
+    public let value: UInt32
+}
+
+public struct MIDIDestinationID: Sendable, Hashable {
+    public let value: UInt32
+}</code></pre>
+
+            <h3>MIDISourceInfo / MIDIDestinationInfo</h3>
+            <p>Endpoint metadata including name, manufacturer, and persistent ID.</p>
+
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>sourceID / destinationID</code></td><td>MIDISourceID / MIDIDestinationID</td><td>Session-scoped handle</td></tr>
+                    <tr><td><code>name</code></td><td>String</td><td>Endpoint display name</td></tr>
+                    <tr><td><code>manufacturer</code></td><td>String?</td><td>Manufacturer name</td></tr>
+                    <tr><td><code>isOnline</code></td><td>Bool</td><td>True if currently available</td></tr>
+                    <tr><td><code>uniqueID</code></td><td>Int32?</td><td>Persistent ID across sessions</td></tr>
+                </tbody>
+            </table>
+
+            <h3>MIDIReceivedData</h3>
+            <p>Incoming MIDI data with source information.</p>
+
+            <pre><code class="language-swift">public struct MIDIReceivedData: Sendable {
+    public let data: [UInt8]       // Raw MIDI bytes
+    public let sourceID: MIDISourceID?  // Source endpoint
+    public let timestamp: UInt64    // CoreMIDI timestamp
+}</code></pre>
+
+            <h2>Error Types</h2>
+            <div class="api-signature">
+                <code>public enum MIDITransportError: Error, Sendable</code>
+            </div>
+
+            <table>
+                <thead><tr><th>Case</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>notInitialized</code></td><td>Transport not initialized</td></tr>
+                    <tr><td><code>clientCreationFailed(Int32)</code></td><td>Failed to create MIDI client</td></tr>
+                    <tr><td><code>portCreationFailed(Int32)</code></td><td>Failed to create MIDI port</td></tr>
+                    <tr><td><code>sendFailed(Int32)</code></td><td>Failed to send MIDI data</td></tr>
+                    <tr><td><code>connectionFailed(Int32)</code></td><td>Failed to connect to source</td></tr>
+                    <tr><td><code>destinationNotFound(UInt32)</code></td><td>Destination endpoint not found</td></tr>
+                    <tr><td><code>sourceNotFound(UInt32)</code></td><td>Source endpoint not found</td></tr>
+                </tbody>
+            </table>
+        </main>
+    </div>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

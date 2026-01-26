@@ -4,49 +4,848 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIDI2Kit — The SDK for MIDI 2.0</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <meta name="description" content="A Swift library for implementing MIDI 2.0 (UMP, MIDI-CI, Property Exchange) in macOS and iOS applications.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
     <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --accent-green: #30d158;
+            --accent-purple: #bf5af2;
+            --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --gradient-start: #0a84ff;
+            --gradient-end: #bf5af2;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            background-color: #000;
-            color: #f5f5f7;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
             display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover {
+            background: #252525;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            text-align: center;
+            padding: 120px 24px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(10, 132, 255, 0.1);
+            border: 1px solid rgba(10, 132, 255, 0.3);
+            border-radius: 100px;
+            font-size: 13px;
+            color: var(--accent-blue);
+            margin-bottom: 32px;
+        }
+
+        .hero h1 {
+            font-size: clamp(48px, 8vw, 80px);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 48px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 120px 24px;
+            background: var(--bg-secondary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-header h2 {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .feature-icon.blue { background: rgba(10, 132, 255, 0.15); }
+        .feature-icon.green { background: rgba(48, 209, 88, 0.15); }
+        .feature-icon.purple { background: rgba(191, 90, 242, 0.15); }
+        .feature-icon.orange { background: rgba(255, 159, 10, 0.15); }
+
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        /* Quick Start Section */
+        .quickstart {
+            padding: 120px 24px;
+        }
+
+        .code-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .code-tab {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .code-tab.active {
+            background: var(--accent-blue);
+            color: white;
+            border-color: var(--accent-blue);
+        }
+
+        .code-block {
+            background: var(--bg-code);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-filename {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .code-copy {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .code-copy:hover {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .code-block pre {
             margin: 0;
+            padding: 24px;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        /* Modules Section */
+        .modules {
+            padding: 120px 24px;
+            background: var(--bg-secondary);
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .module-card {
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--border-color);
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s;
+        }
+
+        .module-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-4px);
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .module-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .module-card h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .module-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .module-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .module-link {
+            font-size: 13px;
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .module-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Documentation Section */
+        .docs-section {
+            padding: 120px 24px;
+        }
+
+        .docs-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .docs-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .docs-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid var(--border-color);
+        }
+
+        .docs-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .docs-card ul {
+            list-style: none;
+        }
+
+        .docs-card li {
+            margin-bottom: 12px;
+        }
+
+        .docs-card a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .docs-card a:hover {
+            color: var(--accent-blue);
+        }
+
+        .docs-card a::before {
+            content: '→';
+            color: var(--text-tertiary);
+        }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
             text-align: center;
         }
-        .container {
-            max-width: 600px;
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
         }
-        h1 {
-            font-size: 3rem;
-            font-weight: 600;
-            letter-spacing: -0.015em;
-            margin-bottom: 0.5rem;
-        }
-        p {
-            font-size: 1.5rem;
-            color: #86868b;
-            font-weight: 400;
-            margin-bottom: 2rem;
-        }
-        .link {
-            color: #0066cc;
+
+        .footer-links a {
+            color: var(--text-secondary);
             text-decoration: none;
-            font-size: 1.1rem;
+            font-size: 14px;
         }
-        .link:hover {
-            text-decoration: underline;
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 40px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#quickstart">Quick Start</a></li>
+                <li><a href="docs/">Documentation</a></li>
+                <li><a href="guides/">Guides</a></li>
+                <li><a href="https://github.com/midi2kit/midi2kit-core">API Reference</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-badge">
+            <span>🎵</span>
+            <span>MIDI 2.0 Ready</span>
+        </div>
         <h1>MIDI2Kit</h1>
-        <p>The future of MIDI 2.0. Standardized.</p>
-        <p style="font-size: 1rem; color: #424245;">Under Development</p>
-        <a class="link" href="https://github.com/midi2kit">View on GitHub &rarr;</a>
-    </div>
+        <p>A Swift library for implementing MIDI 2.0 — UMP, MIDI-CI, and Property Exchange — in macOS and iOS applications.</p>
+        <div class="hero-buttons">
+            <a href="#quickstart" class="btn btn-primary">Get Started</a>
+            <a href="docs/" class="btn btn-secondary">Documentation</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Built for MIDI 2.0</h2>
+                <p>Everything you need to implement the next generation of MIDI</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon blue">📦</div>
+                    <h3>Universal MIDI Packet</h3>
+                    <p>Complete UMP support with type-safe builders, parsers, and value scaling utilities for MIDI 1.0 ↔ 2.0 conversion.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon green">🔍</div>
+                    <h3>Device Discovery</h3>
+                    <p>Automatic MIDI-CI device discovery with capability negotiation and lifecycle management via CIManager.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon purple">🔄</div>
+                    <h3>Property Exchange</h3>
+                    <p>High-level async/await API for GET, SET, and Subscribe operations with automatic chunking and timeout handling.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon orange">🔌</div>
+                    <h3>Transport Abstraction</h3>
+                    <p>Clean separation from CoreMIDI with MockTransport for testing. Production and test code share the same interface.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section class="quickstart" id="quickstart">
+        <div class="container">
+            <div class="section-header">
+                <h2>Quick Start</h2>
+                <p>Get up and running in minutes</p>
+            </div>
+
+            <div class="code-tabs">
+                <button class="code-tab active">Package.swift</button>
+            </div>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-filename">Package.swift</span>
+                    <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><code class="language-swift">dependencies: [
+    .package(url: "https://github.com/midi2kit/midi2kit-core.git", from: "1.0.0")
+]</code></pre>
+            </div>
+
+            <div style="height: 32px;"></div>
+
+            <div class="code-tabs">
+                <button class="code-tab active">Discovery</button>
+                <button class="code-tab">Property Exchange</button>
+            </div>
+            <div class="code-block" id="code-discovery">
+                <div class="code-header">
+                    <span class="code-filename">DeviceDiscovery.swift</span>
+                    <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><code class="language-swift">import MIDI2Kit
+
+// Create transport and CI manager
+let transport = try CoreMIDITransport(clientName: "MyApp")
+let ciManager = CIManager(transport: transport)
+
+// Start discovery
+try await ciManager.start()
+
+// Listen for devices
+for await event in ciManager.events {
+    switch event {
+    case .deviceDiscovered(let device):
+        print("Found: \(device.displayName)")
+        if device.supportsPropertyExchange {
+            print("  → Supports Property Exchange!")
+        }
+    case .deviceLost(let muid):
+        print("Lost device: \(muid)")
+    default:
+        break
+    }
+}</code></pre>
+            </div>
+            <div class="code-block" id="code-pe" style="display: none;">
+                <div class="code-header">
+                    <span class="code-filename">PropertyExchange.swift</span>
+                    <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><code class="language-swift">import MIDI2Kit
+
+// Setup PE Manager with destination resolver
+let peManager = PEManager(transport: transport, sourceMUID: ciManager.muid)
+peManager.destinationResolver = ciManager.makeDestinationResolver()
+await peManager.startReceiving()
+
+// Get device info (async/await)
+let deviceInfo = try await peManager.getDeviceInfo(from: device.muid)
+print("Product: \(deviceInfo.productName ?? "Unknown")")
+
+// Get resource list
+let resources = try await peManager.getResourceList(from: device.muid)
+for resource in resources {
+    print("  \(resource.resource): GET=\(resource.canGet ?? false)")
+}
+
+// Subscribe to notifications
+let response = try await peManager.subscribe(to: "CurrentProgram", on: device.muid)
+for await notification in peManager.startNotificationStream() {
+    print("Changed: \(notification.resource)")
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modules Section -->
+    <section class="modules">
+        <div class="container">
+            <div class="section-header">
+                <h2>Modules</h2>
+                <p>Modular architecture for flexibility</p>
+            </div>
+            <div class="modules-grid">
+                <a href="docs/midi2core.html" class="module-card">
+                    <div class="module-header">
+                        <div class="module-icon" style="background: rgba(10, 132, 255, 0.15);">📦</div>
+                        <h3>MIDI2Core</h3>
+                    </div>
+                    <p>UMP types, MUID, DeviceIdentity, value scaling, and Mcoded7 encoding. The foundation for all MIDI 2.0 operations.</p>
+                    <div class="module-links">
+                        <span class="module-link">View API →</span>
+                    </div>
+                </a>
+                <a href="docs/midi2transport.html" class="module-card">
+                    <div class="module-header">
+                        <div class="module-icon" style="background: rgba(255, 159, 10, 0.15);">🔌</div>
+                        <h3>MIDI2Transport</h3>
+                    </div>
+                    <p>Protocol abstraction for MIDI I/O. Includes CoreMIDITransport for production and MockMIDITransport for testing.</p>
+                    <div class="module-links">
+                        <span class="module-link">View API →</span>
+                    </div>
+                </a>
+                <a href="docs/midi2ci.html" class="module-card">
+                    <div class="module-header">
+                        <div class="module-icon" style="background: rgba(48, 209, 88, 0.15);">🔍</div>
+                        <h3>MIDI2CI</h3>
+                    </div>
+                    <p>MIDI-CI device discovery and capability inquiry. Automatic device lifecycle management with CIManager.</p>
+                    <div class="module-links">
+                        <span class="module-link">View API →</span>
+                    </div>
+                </a>
+                <a href="docs/midi2pe.html" class="module-card">
+                    <div class="module-header">
+                        <div class="module-icon" style="background: rgba(191, 90, 242, 0.15);">🔄</div>
+                        <h3>MIDI2PE</h3>
+                    </div>
+                    <p>Property Exchange operations: GET, SET, Subscribe. High-level async/await API with automatic chunking.</p>
+                    <div class="module-links">
+                        <span class="module-link">View API →</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Documentation Section -->
+    <section class="docs-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Documentation</h2>
+                <p>Everything you need to build with MIDI2Kit</p>
+            </div>
+            <div class="docs-grid">
+                <div class="docs-card">
+                    <h3>📚 Getting Started</h3>
+                    <ul>
+                        <li><a href="docs/installation.html">Installation</a></li>
+                        <li><a href="docs/quickstart.html">Quick Start Guide</a></li>
+                        <li><a href="docs/basic-concepts.html">Basic Concepts</a></li>
+                        <li><a href="docs/examples.html">Example Projects</a></li>
+                    </ul>
+                </div>
+                <div class="docs-card">
+                    <h3>📖 API Reference</h3>
+                    <ul>
+                        <li><a href="docs/midi2core.html">MIDI2Core</a></li>
+                        <li><a href="docs/midi2transport.html">MIDI2Transport</a></li>
+                        <li><a href="docs/midi2ci.html">MIDI2CI</a></li>
+                        <li><a href="docs/midi2pe.html">MIDI2PE</a></li>
+                    </ul>
+                </div>
+                <div class="docs-card">
+                    <h3>🔬 Guides & Internals</h3>
+                    <ul>
+                        <li><a href="guides/architecture.html">Architecture Overview</a></li>
+                        <li><a href="guides/property-exchange.html">Property Exchange Deep Dive</a></li>
+                        <li><a href="guides/testing.html">Testing with MockTransport</a></li>
+                        <li><a href="guides/migration.html">Migration from MIDI 1.0</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="docs/">Documentation</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">© 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>
+        hljs.highlightAll();
+
+        // Tab switching
+        document.querySelectorAll('.code-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const parent = this.parentElement;
+                parent.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+
+                // Toggle code blocks for PE section
+                if (this.textContent === 'Discovery') {
+                    document.getElementById('code-discovery').style.display = 'block';
+                    document.getElementById('code-pe').style.display = 'none';
+                } else if (this.textContent === 'Property Exchange') {
+                    document.getElementById('code-discovery').style.display = 'none';
+                    document.getElementById('code-pe').style.display = 'block';
+                }
+            });
+        });
+
+        // Copy code
+        function copyCode(btn) {
+            const code = btn.closest('.code-block').querySelector('code').textContent;
+            navigator.clipboard.writeText(code);
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 2000);
+        }
+    </script>
 </body>
 </html>

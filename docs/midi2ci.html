@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI2CI — MIDI2Kit Documentation</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-code: #0d1117;
+            --text-primary: #f5f5f7; --text-secondary: #a1a1a6; --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff; --accent-green: #30d158; --accent-purple: #bf5af2;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; gap: 32px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-weight: 600; }
+        .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1c1c1e; }
+        .docs-layout { display: grid; grid-template-columns: 260px 1fr; max-width: 1400px; margin: 0 auto; padding-top: 64px; min-height: 100vh; }
+        .sidebar { position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; padding: 32px 24px; border-right: 1px solid var(--border-color); }
+        .sidebar-section { margin-bottom: 32px; }
+        .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 12px; }
+        .sidebar-links { list-style: none; }
+        .sidebar-links li { margin-bottom: 4px; }
+        .sidebar-links a { display: block; padding: 8px 12px; color: var(--text-secondary); text-decoration: none; font-size: 14px; border-radius: 8px; transition: all 0.2s; }
+        .sidebar-links a:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .sidebar-links a.active { background: rgba(48, 209, 88, 0.15); color: var(--accent-green); }
+        .docs-content { padding: 48px 64px; max-width: 900px; }
+        .docs-content h1 { font-size: 36px; font-weight: 700; margin-bottom: 8px; }
+        .docs-content .module-badge { display: inline-block; padding: 4px 12px; background: rgba(48, 209, 88, 0.15); color: var(--accent-green); border-radius: 6px; font-size: 13px; font-weight: 500; margin-bottom: 24px; }
+        .docs-content .lead { font-size: 18px; color: var(--text-secondary); margin-bottom: 48px; }
+        .docs-content h2 { font-size: 24px; font-weight: 600; margin-top: 48px; margin-bottom: 16px; padding-top: 24px; border-top: 1px solid var(--border-color); }
+        .docs-content h3 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+        .docs-content p { margin-bottom: 16px; color: var(--text-secondary); }
+        .docs-content code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent-green); }
+        .docs-content pre { background: var(--bg-code); border-radius: 12px; padding: 20px; overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--border-color); }
+        .docs-content pre code { background: none; padding: 0; font-size: 13px; line-height: 1.7; color: var(--text-primary); }
+        .docs-content table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        .docs-content th, .docs-content td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .docs-content th { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); background: var(--bg-secondary); }
+        .docs-content td { font-size: 14px; color: var(--text-secondary); }
+        .api-signature { background: var(--bg-code); border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; border-left: 3px solid var(--accent-green); }
+        .api-signature code { background: none; color: var(--text-primary); }
+        @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 32px 24px; } }
+    </style>
+</head>
+<body>
+    <nav><div class="nav-container"><a href="../" class="nav-logo"><div class="nav-logo-icon">M2</div><span>MIDI2Kit</span></a></div></nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">API Reference</div>
+                <ul class="sidebar-links">
+                    <li><a href="midi2core.html">MIDI2Core</a></li>
+                    <li><a href="midi2transport.html">MIDI2Transport</a></li>
+                    <li><a href="midi2ci.html" class="active">MIDI2CI</a></li>
+                    <li><a href="midi2pe.html">MIDI2PE</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">On This Page</div>
+                <ul class="sidebar-links">
+                    <li><a href="#cimanager">CIManager</a></li>
+                    <li><a href="#configuration">Configuration</a></li>
+                    <li><a href="#events">Events</a></li>
+                    <li><a href="#discovered-device">DiscoveredDevice</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="docs-content">
+            <h1>MIDI2CI</h1>
+            <span class="module-badge">Discovery Module</span>
+            <p class="lead">MIDI-CI device discovery and capability inquiry with automatic lifecycle management.</p>
+
+            <h2 id="cimanager">CIManager</h2>
+            <p>High-level actor for automatic MIDI-CI device discovery. Handles Discovery Inquiry broadcasts, response parsing, and device timeout detection.</p>
+
+            <div class="api-signature">
+                <code>public actor CIManager</code>
+            </div>
+
+            <h3>Initialization</h3>
+            <pre><code class="language-swift">// Basic initialization
+let transport = try CoreMIDITransport(clientName: "MyApp")
+let ciManager = CIManager(transport: transport)
+
+// With custom configuration
+let config = CIManagerConfiguration(
+    discoveryInterval: 10.0,
+    deviceTimeout: 30.0,
+    autoStartDiscovery: true
+)
+let ciManager = CIManager(transport: transport, configuration: config)</code></pre>
+
+            <h3>Properties</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>muid</code></td><td>MUID</td><td>This manager's unique identifier</td></tr>
+                    <tr><td><code>events</code></td><td>AsyncStream&lt;CIManagerEvent&gt;</td><td>Stream of discovery events</td></tr>
+                    <tr><td><code>discoveredDevices</code></td><td>[DiscoveredDevice]</td><td>All discovered devices</td></tr>
+                    <tr><td><code>peCapableDevices</code></td><td>[DiscoveredDevice]</td><td>Devices supporting Property Exchange</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Methods</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>start()</code></td><td>Start the CI manager and begin receiving</td></tr>
+                    <tr><td><code>stop()</code></td><td>Stop the CI manager</td></tr>
+                    <tr><td><code>startDiscovery()</code></td><td>Begin periodic Discovery Inquiry broadcasts</td></tr>
+                    <tr><td><code>stopDiscovery()</code></td><td>Stop periodic broadcasts</td></tr>
+                    <tr><td><code>device(for:)</code></td><td>Get device by MUID</td></tr>
+                    <tr><td><code>destination(for:)</code></td><td>Get MIDI destination for a device</td></tr>
+                    <tr><td><code>makeDestinationResolver()</code></td><td>Create resolver closure for PEManager</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Usage Example</h3>
+            <pre><code class="language-swift">let ciManager = CIManager(transport: transport)
+try await ciManager.start()
+
+// Listen for device events
+for await event in ciManager.events {
+    switch event {
+    case .deviceDiscovered(let device):
+        print("Found: \(device.displayName)")
+        print("  MUID: \(device.muid)")
+        print("  PE Support: \(device.supportsPropertyExchange)")
+        
+    case .deviceLost(let muid):
+        print("Lost device: \(muid)")
+        
+    case .deviceUpdated(let device):
+        print("Updated: \(device.displayName)")
+        
+    default:
+        break
+    }
+}</code></pre>
+
+            <h2 id="configuration">CIManagerConfiguration</h2>
+            <div class="api-signature">
+                <code>public struct CIManagerConfiguration: Sendable</code>
+            </div>
+
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>discoveryInterval</code></td><td>TimeInterval</td><td>5.0</td><td>Seconds between Discovery Inquiry broadcasts</td></tr>
+                    <tr><td><code>deviceTimeout</code></td><td>TimeInterval</td><td>15.0</td><td>Seconds before a device is considered lost</td></tr>
+                    <tr><td><code>autoStartDiscovery</code></td><td>Bool</td><td>true</td><td>Auto-start discovery when start() is called</td></tr>
+                    <tr><td><code>respondToDiscovery</code></td><td>Bool</td><td>true</td><td>Respond to incoming Discovery Inquiries</td></tr>
+                    <tr><td><code>categorySupport</code></td><td>CategorySupport</td><td>.propertyExchange</td><td>Capabilities to advertise</td></tr>
+                    <tr><td><code>deviceIdentity</code></td><td>DeviceIdentity</td><td>.default</td><td>Device identity to advertise</td></tr>
+                    <tr><td><code>maxSysExSize</code></td><td>UInt32</td><td>0</td><td>Max SysEx size (0 = no limit)</td></tr>
+                </tbody>
+            </table>
+
+            <h2 id="events">CIManagerEvent</h2>
+            <div class="api-signature">
+                <code>public enum CIManagerEvent: Sendable</code>
+            </div>
+
+            <table>
+                <thead><tr><th>Case</th><th>Associated Value</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>deviceDiscovered</code></td><td>DiscoveredDevice</td><td>New device found</td></tr>
+                    <tr><td><code>deviceLost</code></td><td>MUID</td><td>Device timed out or invalidated</td></tr>
+                    <tr><td><code>deviceUpdated</code></td><td>DiscoveredDevice</td><td>Existing device replied again</td></tr>
+                    <tr><td><code>discoveryStarted</code></td><td>—</td><td>Discovery broadcasts started</td></tr>
+                    <tr><td><code>discoveryStopped</code></td><td>—</td><td>Discovery broadcasts stopped</td></tr>
+                </tbody>
+            </table>
+
+            <h2 id="discovered-device">DiscoveredDevice</h2>
+            <p>Represents a device discovered via MIDI-CI.</p>
+
+            <div class="api-signature">
+                <code>public struct DiscoveredDevice: Sendable, Identifiable, Hashable</code>
+            </div>
+
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>muid</code></td><td>MUID</td><td>Device's unique identifier</td></tr>
+                    <tr><td><code>identity</code></td><td>DeviceIdentity</td><td>Manufacturer, family, model, version</td></tr>
+                    <tr><td><code>categorySupport</code></td><td>CategorySupport</td><td>Supported MIDI-CI categories</td></tr>
+                    <tr><td><code>maxSysExSize</code></td><td>UInt32</td><td>Maximum SysEx message size</td></tr>
+                    <tr><td><code>supportsPropertyExchange</code></td><td>Bool</td><td>True if PE is supported</td></tr>
+                    <tr><td><code>displayName</code></td><td>String</td><td>Human-readable device name</td></tr>
+                </tbody>
+            </table>
+
+            <h3>CategorySupport</h3>
+            <pre><code class="language-swift">public struct CategorySupport: OptionSet, Sendable {
+    public static let protocolNegotiation: CategorySupport
+    public static let profileConfiguration: CategorySupport
+    public static let propertyExchange: CategorySupport
+    public static let processInquiry: CategorySupport
+}
+
+// Check device capabilities
+if device.categorySupport.contains(.propertyExchange) {
+    // Device supports PE
+}</code></pre>
+        </main>
+    </div>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

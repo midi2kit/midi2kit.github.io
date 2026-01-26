@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Exchange Internals — MIDI2Kit Guides</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a; --bg-secondary: #141414; --bg-tertiary: #1a1a1a; --bg-code: #0d1117;
+            --text-primary: #f5f5f7; --text-secondary: #a1a1a6; --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff; --accent-green: #30d158; --accent-purple: #bf5af2; --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; gap: 32px; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-weight: 600; }
+        .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1c1c1e; }
+        .docs-layout { display: grid; grid-template-columns: 260px 1fr; max-width: 1400px; margin: 0 auto; padding-top: 64px; min-height: 100vh; }
+        .sidebar { position: sticky; top: 64px; height: calc(100vh - 64px); overflow-y: auto; padding: 32px 24px; border-right: 1px solid var(--border-color); }
+        .sidebar-section { margin-bottom: 32px; }
+        .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 12px; }
+        .sidebar-links { list-style: none; }
+        .sidebar-links li { margin-bottom: 4px; }
+        .sidebar-links a { display: block; padding: 8px 12px; color: var(--text-secondary); text-decoration: none; font-size: 14px; border-radius: 8px; transition: all 0.2s; }
+        .sidebar-links a:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .sidebar-links a.active { background: rgba(191, 90, 242, 0.15); color: var(--accent-purple); }
+        .docs-content { padding: 48px 64px; max-width: 900px; }
+        .docs-content h1 { font-size: 36px; font-weight: 700; margin-bottom: 16px; }
+        .docs-content .lead { font-size: 18px; color: var(--text-secondary); margin-bottom: 48px; }
+        .docs-content h2 { font-size: 24px; font-weight: 600; margin-top: 48px; margin-bottom: 16px; padding-top: 24px; border-top: 1px solid var(--border-color); }
+        .docs-content h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+        .docs-content h3 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+        .docs-content p { margin-bottom: 16px; color: var(--text-secondary); }
+        .docs-content ul, .docs-content ol { margin-bottom: 16px; padding-left: 24px; color: var(--text-secondary); }
+        .docs-content li { margin-bottom: 8px; }
+        .docs-content code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent-purple); }
+        .docs-content pre { background: var(--bg-code); border-radius: 12px; padding: 20px; overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--border-color); }
+        .docs-content pre code { background: none; padding: 0; font-size: 13px; line-height: 1.7; color: var(--text-primary); }
+        .docs-content table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        .docs-content th, .docs-content td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .docs-content th { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); background: var(--bg-secondary); }
+        .docs-content td { font-size: 14px; color: var(--text-secondary); }
+        .note { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+        .note p { margin: 0; color: var(--text-secondary); }
+        .note strong { color: var(--accent-blue); }
+        .diagram { background: var(--bg-secondary); border-radius: 12px; padding: 24px; margin-bottom: 24px; font-family: 'JetBrains Mono', monospace; font-size: 12px; overflow-x: auto; }
+        @media (max-width: 900px) { .docs-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .docs-content { padding: 32px 24px; } }
+    </style>
+</head>
+<body>
+    <nav><div class="nav-container"><a href="../" class="nav-logo"><div class="nav-logo-icon">M2</div><span>MIDI2Kit</span></a></div></nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Guides</div>
+                <ul class="sidebar-links">
+                    <li><a href="architecture.html">Architecture</a></li>
+                    <li><a href="property-exchange.html" class="active">Property Exchange</a></li>
+                    <li><a href="testing.html">Testing</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">On This Page</div>
+                <ul class="sidebar-links">
+                    <li><a href="#message-format">Message Format</a></li>
+                    <li><a href="#chunking">Chunking</a></li>
+                    <li><a href="#mcoded7">Mcoded7 Encoding</a></li>
+                    <li><a href="#14bit">14-bit Encoding</a></li>
+                    <li><a href="#deviceinfo">DeviceInfo Format</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="docs-content">
+            <h1>Property Exchange Internals</h1>
+            <p class="lead">A deep dive into MIDI-CI Property Exchange: message format, chunking, Mcoded7 encoding, and vendor-specific formats.</p>
+
+            <h2 id="message-format">Message Format</h2>
+            <p>Property Exchange uses Universal SysEx messages with specific Sub-IDs for different operations.</p>
+
+            <h3>PE Get Inquiry (0x34)</h3>
+            <p>Request to read a property value.</p>
+
+            <div class="diagram">
+Offset  Size  Field
+------  ----  -----
+0       1     Universal SysEx ID (0x7E)
+1       1     Device ID (0x7F = broadcast)
+2       1     Sub-ID#1 (0x0D = MIDI-CI)
+3       1     Sub-ID#2 (0x34 = PE Get Inquiry)
+4       1     MIDI-CI Version
+5       4     Source MUID (28-bit, LSB first)
+9       4     Destination MUID (28-bit, LSB first)
+13      1     Request ID (7-bit, 0-127)
+14      2     Header Size (14-bit, LSB first)
+16      N     Header Data (JSON)
+            </div>
+
+            <h3>PE Get Reply (0x35)</h3>
+            <p>Response containing property data.</p>
+
+            <div class="diagram">
+Offset  Size  Field
+------  ----  -----
+0       1     Universal SysEx ID (0x7E)
+1       1     Device ID (0x7F)
+2       1     Sub-ID#1 (0x0D = MIDI-CI)
+3       1     Sub-ID#2 (0x35 = PE Get Reply)
+4       1     MIDI-CI Version
+5       4     Source MUID (28-bit, LSB first)
+9       4     Destination MUID (28-bit, LSB first)
+13      1     Request ID (7-bit)
+14      2     Header Size (14-bit, LSB first)
+16      N     Header Data (JSON)
+16+N    2     Num Chunks (14-bit)
+18+N    2     This Chunk (14-bit, 1-indexed)
+20+N    2     Data Size (14-bit)
+22+N    M     Property Data (JSON, Mcoded7)
+            </div>
+
+            <div class="note">
+                <p><strong>📝 Note:</strong> Header Data immediately follows Header Size. Chunk fields (numChunks, thisChunk, dataSize) come after the header.</p>
+            </div>
+
+            <h3>PE Message Types</h3>
+            <table>
+                <thead><tr><th>Sub-ID</th><th>Name</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>0x34</code></td><td>PE Get Inquiry</td><td>Request to read property</td></tr>
+                    <tr><td><code>0x35</code></td><td>PE Get Reply</td><td>Response with property data</td></tr>
+                    <tr><td><code>0x36</code></td><td>PE Set Inquiry</td><td>Request to write property</td></tr>
+                    <tr><td><code>0x37</code></td><td>PE Set Reply</td><td>Acknowledge write</td></tr>
+                    <tr><td><code>0x38</code></td><td>PE Subscribe</td><td>Subscribe to notifications</td></tr>
+                    <tr><td><code>0x39</code></td><td>PE Subscribe Reply</td><td>Subscription response</td></tr>
+                    <tr><td><code>0x3F</code></td><td>PE Notify</td><td>Property change notification</td></tr>
+                </tbody>
+            </table>
+
+            <h2 id="chunking">Multi-Chunk Responses</h2>
+            <p>Large responses are split into multiple chunks. Each chunk contains:</p>
+
+            <ul>
+                <li><strong>numChunks</strong>: Total number of chunks (1-16383)</li>
+                <li><strong>thisChunk</strong>: Current chunk number (1-indexed)</li>
+                <li><strong>dataSize</strong>: Size of data in this chunk</li>
+            </ul>
+
+            <pre><code class="language-swift">// PEManager handles chunking automatically
+// You receive the complete assembled response
+let response = try await peManager.get("LargeResource", from: device.muid)
+
+// Internally, PETransactionManager assembles chunks:
+// - Tracks expected chunk count
+// - Assembles header and body data
+// - Times out if chunks don't arrive
+// - Releases Request ID when complete</code></pre>
+
+            <h2 id="mcoded7">Mcoded7 Encoding</h2>
+            <p>Property Exchange data is encoded using Mcoded7 to ensure all bytes are 7-bit safe for MIDI transmission.</p>
+
+            <h3>Encoding Algorithm</h3>
+            <p>Every 7 bytes of 8-bit data become 8 bytes of 7-bit data:</p>
+
+            <div class="diagram">
+8-bit input:  [B0] [B1] [B2] [B3] [B4] [B5] [B6]
+                ↓    ↓    ↓    ↓    ↓    ↓    ↓
+7-bit output: [H ] [b0] [b1] [b2] [b3] [b4] [b5] [b6]
+
+Where:
+- H  = High bits collected: B0[7] B1[7] B2[7] B3[7] B4[7] B5[7] B6[7] 0
+- bN = BN with bit 7 cleared (BN & 0x7F)
+            </div>
+
+            <h3>Example</h3>
+            <pre><code class="language-swift">// Original data (8-bit)
+let original = Data([0x00, 0xFF, 0x80, 0x7F, 0x01, 0x02, 0x03])
+
+// Encoded (7-bit safe)
+let encoded = Mcoded7.encode(original)
+// encoded = [0x2A, 0x00, 0x7F, 0x00, 0x7F, 0x01, 0x02, 0x03]
+//            ^--- high bits: 0b00101010 (bits 7 of bytes 1,3,4)
+
+// Decoded back
+let decoded = Mcoded7.decode(encoded)
+// decoded == original</code></pre>
+
+            <div class="note">
+                <p><strong>💡 Tip:</strong> Use <code>response.decodedBody</code> instead of <code>response.body</code> when processing PE responses. The <code>decodedBody</code> property automatically handles Mcoded7 decoding.</p>
+            </div>
+
+            <h2 id="14bit">14-bit Field Encoding</h2>
+            <p>Two-byte fields in MIDI-CI use 14-bit encoding where each byte's high bit is always 0:</p>
+
+            <pre><code class="language-swift">// Encode 14-bit value
+func encode14bit(_ value: UInt16) -> (lsb: UInt8, msb: UInt8) {
+    let lsb = UInt8(value & 0x7F)
+    let msb = UInt8((value >> 7) & 0x7F)
+    return (lsb, msb)
+}
+
+// Decode 14-bit value
+func decode14bit(lsb: UInt8, msb: UInt8) -> UInt16 {
+    return UInt16(lsb) | (UInt16(msb) << 7)
+}
+
+// Example: Header Size = 256
+// LSB = 256 & 0x7F = 0 (0x00)
+// MSB = (256 >> 7) & 0x7F = 2 (0x02)
+// Wire format: [0x00, 0x02]</code></pre>
+
+            <h2 id="deviceinfo">DeviceInfo Format</h2>
+            <p>The <code>DeviceInfo</code> resource returns device identification. Different manufacturers may use slightly different JSON formats.</p>
+
+            <h3>Standard MIDI-CI Format</h3>
+            <pre><code class="language-json">{
+  "manufacturerName": "KORG Inc.",
+  "productName": "Module Pro",
+  "familyName": "KORG Module",
+  "softwareVersion": "5.0.10",
+  "productInstanceId": "KM-001234"
+}</code></pre>
+
+            <h3>Alternative Format (e.g., KORG)</h3>
+            <pre><code class="language-json">{
+  "manufacturerId": [66, 0, 0],
+  "manufacturer": "KORG Inc.",
+  "familyId": [118, 1],
+  "family": "KORG Module",
+  "modelId": [4, 0],
+  "model": "Module Pro",
+  "versionId": [9, 0, 5, 0],
+  "version": "5.0.10"
+}</code></pre>
+
+            <h3>MIDI2Kit Handling</h3>
+            <p><code>PEDeviceInfo</code> handles both formats transparently:</p>
+
+            <pre><code class="language-swift">public struct PEDeviceInfo: Sendable, Codable {
+    // Standard keys
+    public let manufacturerName: String?
+    public let productName: String?
+    public let softwareVersion: String?
+    
+    // Decoded automatically from either format
+    public init(from decoder: Decoder) throws {
+        // Try standard key first, fall back to alternative
+        manufacturerName = try container.decodeIfPresent(String.self, forKey: .manufacturerName)
+            ?? container.decodeIfPresent(String.self, forKey: .manufacturer)
+        
+        productName = try container.decodeIfPresent(String.self, forKey: .productName)
+            ?? container.decodeIfPresent(String.self, forKey: .model)
+        // ...
+    }
+}</code></pre>
+
+            <h2>Request ID Management</h2>
+            <p>Each PE transaction uses a Request ID (0-127). MIDI2Kit manages these automatically:</p>
+
+            <ul>
+                <li>IDs are allocated per-device to allow concurrent requests</li>
+                <li>Max 2 concurrent requests per device by default</li>
+                <li>IDs are released when response arrives or timeout occurs</li>
+                <li><code>PEError.requestIDExhausted</code> if all 128 IDs are in use</li>
+            </ul>
+
+            <pre><code class="language-swift">// PETransactionManager tracks:
+// - Active transactions by Request ID
+// - Chunk assembly state
+// - Timeout scheduling
+// - Request ID allocation/release
+
+// Configuration
+let peManager = PEManager(
+    transport: transport,
+    sourceMUID: muid,
+    maxInflightPerDevice: 2  // Limit concurrent requests
+)</code></pre>
+        </main>
+    </div>
+    <script>hljs.highlightAll();</script>
+</body>
+</html>
