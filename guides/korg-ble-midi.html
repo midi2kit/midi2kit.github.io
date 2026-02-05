@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KORG BLE MIDI Guide — MIDI2Kit</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-green: #30d158;
+            --accent-purple: #bf5af2;
+            --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 120px 24px 80px;
+        }
+
+        h1 {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .lead {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        h2:first-of-type {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        ul, ol {
+            margin-bottom: 16px;
+            padding-left: 24px;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--accent-blue);
+        }
+
+        pre {
+            background: var(--bg-code);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            background: var(--bg-secondary);
+        }
+
+        td {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .callout {
+            background: rgba(255, 159, 10, 0.1);
+            border: 1px solid rgba(255, 159, 10, 0.3);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+        }
+
+        .callout-blue {
+            background: rgba(10, 132, 255, 0.1);
+            border-color: rgba(10, 132, 255, 0.3);
+        }
+
+        .callout-green {
+            background: rgba(48, 209, 88, 0.1);
+            border-color: rgba(48, 209, 88, 0.3);
+        }
+
+        .callout p { margin: 0; }
+
+        .status-table td:first-child {
+            font-weight: 500;
+        }
+
+        .status-ok { color: var(--accent-green); }
+        .status-warn { color: var(--accent-orange); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="../" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>KORG BLE MIDI Guide</h1>
+        <p class="lead">Optimized settings and workarounds for KORG Module Pro and other BLE MIDI devices using MIDI-CI and Property Exchange.</p>
+
+        <h2>Overview</h2>
+        <p>KORG Module Pro is one of the few iOS apps that supports MIDI 2.0 Property Exchange over BLE MIDI. However, BLE MIDI has reliability challenges that require special handling.</p>
+
+        <div class="callout callout-blue">
+            <p><strong>Quick Start:</strong> Use the <code>.korgBLEMIDI</code> preset for automatic optimization.</p>
+        </div>
+
+        <pre><code class="language-swift">let client = try MIDI2Client(name: "MyApp", preset: .korgBLEMIDI)</code></pre>
+
+        <h2>Compatibility Status</h2>
+        <p>Tested operations with KORG Module Pro over BLE MIDI:</p>
+
+        <table class="status-table">
+            <thead>
+                <tr>
+                    <th>Operation</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Discovery</td>
+                    <td class="status-ok">Works</td>
+                    <td>Device discovery is reliable</td>
+                </tr>
+                <tr>
+                    <td>DeviceInfo</td>
+                    <td class="status-ok">Works</td>
+                    <td>Single-chunk response, very reliable</td>
+                </tr>
+                <tr>
+                    <td>ResourceList</td>
+                    <td class="status-warn">May timeout</td>
+                    <td>Multi-chunk response, BLE packet loss can cause issues</td>
+                </tr>
+                <tr>
+                    <td>CMList (Programs)</td>
+                    <td class="status-ok">Works</td>
+                    <td>Direct access without ResourceList</td>
+                </tr>
+                <tr>
+                    <td>GET/SET</td>
+                    <td class="status-ok">Works</td>
+                    <td>Use extended timeouts</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>The Problem</h2>
+        <p>BLE MIDI has inherent reliability issues:</p>
+        <ul>
+            <li><strong>Packet loss:</strong> BLE packets can be dropped, especially under load</li>
+            <li><strong>Multi-chunk responses:</strong> Large responses like ResourceList are split into chunks; if any chunk is lost, the entire response fails</li>
+            <li><strong>Variable latency:</strong> BLE latency varies significantly based on connection quality</li>
+        </ul>
+
+        <h2>Solutions</h2>
+
+        <h3>1. Use the KORG Preset</h3>
+        <p>The <code>.korgBLEMIDI</code> preset applies all recommended optimizations:</p>
+
+        <pre><code class="language-swift">let client = try MIDI2Client(name: "MyApp", preset: .korgBLEMIDI)</code></pre>
+
+        <p>This preset enables:</p>
+        <ul>
+            <li>Extended PE timeout (10 seconds)</li>
+            <li>Warm-up request before ResourceList</li>
+            <li>Automatic destination fallback</li>
+            <li>Increased retry count</li>
+        </ul>
+
+        <h3>2. Manual Configuration</h3>
+        <p>For fine-grained control:</p>
+
+        <pre><code class="language-swift">var config = MIDI2ClientConfiguration()
+
+// Extended timeout for BLE latency
+config.peTimeout = .seconds(10)
+
+// Warm-up helps stabilize BLE connection
+config.warmUpBeforeResourceList = true
+
+// More retries for BLE reliability
+config.maxRetries = 3
+config.retryDelay = .milliseconds(500)
+
+// Lower concurrent requests to reduce BLE load
+config.maxInflightPerDevice = 1
+
+let client = try MIDI2Client(name: "MyApp", configuration: config)</code></pre>
+
+        <h3>3. Skip ResourceList</h3>
+        <p>If ResourceList times out, you can access known resources directly:</p>
+
+        <pre><code class="language-swift">// Instead of fetching ResourceList first...
+// let resources = try await device.resourceList
+
+// Access known KORG resources directly
+let programs = try await client.get("CMList", from: device.muid)
+let deviceInfo = try await client.getDeviceInfo(from: device.muid)</code></pre>
+
+        <h3>4. Implement Fallback Logic</h3>
+        <pre><code class="language-swift">func getResourcesSafely(device: MIDI2Device, client: MIDI2Client) async throws -> [ResourceListEntry] {
+    do {
+        // Try ResourceList first
+        return try await device.resourceList
+    } catch MIDI2Error.deviceNotResponding {
+        // Fallback: return known KORG resources
+        print("ResourceList timed out, using known resources")
+        return [
+            ResourceListEntry(resource: "DeviceInfo", canGet: true),
+            ResourceListEntry(resource: "CMList", canGet: true),
+            ResourceListEntry(resource: "ProgramList", canGet: true)
+        ]
+    }
+}</code></pre>
+
+        <h2>Warm-Up Mechanism</h2>
+        <p>The warm-up feature sends a small single-chunk request (DeviceInfo) before attempting ResourceList. This helps:</p>
+        <ul>
+            <li>Stabilize the BLE connection</li>
+            <li>Prime the device's response path</li>
+            <li>Identify the correct destination endpoint</li>
+        </ul>
+
+        <pre><code class="language-swift">// Warm-up is automatic with the preset, but you can also do it manually:
+_ = try await client.getDeviceInfo(from: device.muid)  // Warm-up
+let resources = try await client.getResourceList(from: device.muid)  // More likely to succeed</code></pre>
+
+        <h2>Diagnostics</h2>
+        <p>When debugging BLE MIDI issues, use the diagnostics API:</p>
+
+        <pre><code class="language-swift">let diag = await client.diagnostics
+
+// Check which destination was used
+print("Destination: \(diag.lastDestinationDiagnostics)")
+
+// Check communication trace
+print("Trace: \(diag.lastCommunicationTrace)")</code></pre>
+
+        <h2>Known KORG Resources</h2>
+        <p>Common Property Exchange resources available on KORG Module Pro:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Resource</th>
+                    <th>Description</th>
+                    <th>GET</th>
+                    <th>SET</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td><code>DeviceInfo</code></td><td>Device information</td><td>Yes</td><td>No</td></tr>
+                <tr><td><code>ResourceList</code></td><td>Available resources</td><td>Yes</td><td>No</td></tr>
+                <tr><td><code>CMList</code></td><td>Channel/Program mapping</td><td>Yes</td><td>Yes</td></tr>
+                <tr><td><code>ProgramList</code></td><td>Available programs</td><td>Yes</td><td>No</td></tr>
+                <tr><td><code>ChConfigList</code></td><td>Channel configuration</td><td>Yes</td><td>Yes</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Best Practices</h2>
+
+        <div class="callout callout-green">
+            <p><strong>Summary:</strong></p>
+        </div>
+
+        <ol>
+            <li><strong>Always use the preset</strong> for KORG BLE MIDI devices</li>
+            <li><strong>Cache aggressively</strong> — MIDI2Device caches DeviceInfo and ResourceList automatically</li>
+            <li><strong>Handle timeouts gracefully</strong> — provide fallback behavior</li>
+            <li><strong>Minimize concurrent requests</strong> — keep <code>maxInflightPerDevice</code> low</li>
+            <li><strong>Use warm-up</strong> — it significantly improves reliability</li>
+            <li><strong>Access known resources directly</strong> — skip ResourceList if it's problematic</li>
+        </ol>
+    </div>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

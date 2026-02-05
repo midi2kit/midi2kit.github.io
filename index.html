@@ -667,20 +667,20 @@
                 </div>
                 <pre><code class="language-swift">import MIDI2Kit
 
-// Create transport and CI manager
-let transport = try CoreMIDITransport(clientName: "MyApp")
-let ciManager = CIManager(transport: transport)
-
-// Start discovery
-try await ciManager.start()
+// Create client with high-level API
+let client = try MIDI2Client(name: "MyApp")
+try await client.start()
 
 // Listen for devices
-for await event in ciManager.events {
+for await event in await client.makeEventStream() {
     switch event {
     case .deviceDiscovered(let device):
         print("Found: \(device.displayName)")
         if device.supportsPropertyExchange {
-            print("  → Supports Property Exchange!")
+            // Get device info automatically
+            if let info = try? await device.deviceInfo {
+                print("  Product: \(info.productName ?? "Unknown")")
+            }
         }
     case .deviceLost(let muid):
         print("Lost device: \(muid)")
@@ -696,25 +696,23 @@ for await event in ciManager.events {
                 </div>
                 <pre><code class="language-swift">import MIDI2Kit
 
-// Setup PE Manager with destination resolver
-let peManager = PEManager(transport: transport, sourceMUID: ciManager.muid)
-peManager.destinationResolver = ciManager.makeDestinationResolver()
-await peManager.startReceiving()
+// Using MIDI2Device for type-safe property access
+if case .deviceDiscovered(let device) = event {
+    // Get device info (cached automatically)
+    let info = try await device.deviceInfo
+    print("Product: \(info.productName ?? "Unknown")")
 
-// Get device info (async/await)
-let deviceInfo = try await peManager.getDeviceInfo(from: device.muid)
-print("Product: \(deviceInfo.productName ?? "Unknown")")
+    // Get resource list
+    let resources = try await device.resourceList
+    for resource in resources {
+        print("  \(resource.resource): GET=\(resource.canGet ?? false)")
+    }
 
-// Get resource list
-let resources = try await peManager.getResourceList(from: device.muid)
-for resource in resources {
-    print("  \(resource.resource): GET=\(resource.canGet ?? false)")
-}
-
-// Subscribe to notifications
-let response = try await peManager.subscribe(to: "CurrentProgram", on: device.muid)
-for await notification in peManager.startNotificationStream() {
-    print("Changed: \(notification.resource)")
+    // Type-safe property access
+    struct VolumeInfo: Codable { let level: Int }
+    if let volume = try await device.getProperty("Volume", as: VolumeInfo.self) {
+        print("Volume: \(volume.level)")
+    }
 }</code></pre>
             </div>
         </div>
@@ -728,9 +726,19 @@ for await notification in peManager.startNotificationStream() {
                 <p>Modular architecture for flexibility</p>
             </div>
             <div class="modules-grid">
+                <a href="docs/midi2kit.html" class="module-card">
+                    <div class="module-header">
+                        <div class="module-icon" style="background: rgba(10, 132, 255, 0.15);">🎵</div>
+                        <h3>MIDI2Kit</h3>
+                    </div>
+                    <p>High-level unified API with MIDI2Client and MIDI2Device. Automatic caching, presets for KORG BLE MIDI, and type-safe property access.</p>
+                    <div class="module-links">
+                        <span class="module-link">View API →</span>
+                    </div>
+                </a>
                 <a href="docs/midi2core.html" class="module-card">
                     <div class="module-header">
-                        <div class="module-icon" style="background: rgba(10, 132, 255, 0.15);">📦</div>
+                        <div class="module-icon" style="background: rgba(110, 110, 115, 0.15);">📦</div>
                         <h3>MIDI2Core</h3>
                     </div>
                     <p>UMP types, MUID, DeviceIdentity, value scaling, and Mcoded7 encoding. The foundation for all MIDI 2.0 operations.</p>
@@ -763,7 +771,7 @@ for await notification in peManager.startNotificationStream() {
                         <div class="module-icon" style="background: rgba(191, 90, 242, 0.15);">🔄</div>
                         <h3>MIDI2PE</h3>
                     </div>
-                    <p>Property Exchange operations: GET, SET, Subscribe. High-level async/await API with automatic chunking.</p>
+                    <p>Property Exchange operations: GET, SET, Subscribe. Batch SET, pipeline API, and payload validation.</p>
                     <div class="module-links">
                         <span class="module-link">View API →</span>
                     </div>
@@ -804,8 +812,8 @@ for await notification in peManager.startNotificationStream() {
                     <ul>
                         <li><a href="guides/architecture.html">Architecture Overview</a></li>
                         <li><a href="guides/property-exchange.html">Property Exchange Deep Dive</a></li>
+                        <li><a href="guides/korg-ble-midi.html">KORG BLE MIDI Guide</a></li>
                         <li><a href="guides/testing.html">Testing with MockTransport</a></li>
-                        <li><a href="guides/migration.html">Migration from MIDI 1.0</a></li>
                     </ul>
                 </div>
             </div>

@@ -374,6 +374,7 @@
                 <div class="sidebar-title">API Reference</div>
                 <ul class="sidebar-links">
                     <li><a href="/api/documentation/midi2kit/">Swift-DocC API</a></li>
+                    <li><a href="midi2kit.html">MIDI2Kit</a></li>
                     <li><a href="midi2core.html">MIDI2Core</a></li>
                     <li><a href="midi2transport.html">MIDI2Transport</a></li>
                     <li><a href="midi2ci.html">MIDI2CI</a></li>
@@ -427,24 +428,29 @@
                 </thead>
                 <tbody>
                     <tr>
+                        <td><code>MIDI2Kit</code></td>
+                        <td>High-level unified API</td>
+                        <td>MIDI2Client, MIDI2Device, MIDI2ClientConfiguration</td>
+                    </tr>
+                    <tr>
                         <td><code>MIDI2Core</code></td>
                         <td>UMP types, MUID, value scaling</td>
-                        <td>UMPMessageType, MUID, DeviceIdentity</td>
+                        <td>UMPMessage, MUID, DeviceIdentity, Mcoded7</td>
                     </tr>
                     <tr>
                         <td><code>MIDI2Transport</code></td>
                         <td>MIDI I/O abstraction</td>
-                        <td>MIDITransport, CoreMIDITransport</td>
+                        <td>MIDITransport, CoreMIDITransport, SysExAssembler</td>
                     </tr>
                     <tr>
                         <td><code>MIDI2CI</code></td>
                         <td>Device discovery</td>
-                        <td>CIManager, DiscoveredDevice</td>
+                        <td>CIManager, CIManagerEvent, DiscoveredDevice</td>
                     </tr>
                     <tr>
                         <td><code>MIDI2PE</code></td>
                         <td>Property Exchange</td>
-                        <td>PEManager, PERequest, PEResponse</td>
+                        <td>PEManager, PEPipeline, PEBatchSetOptions</td>
                     </tr>
                 </tbody>
             </table>
@@ -455,13 +461,17 @@
                     <h4>📚 Swift-DocC API</h4>
                     <p>Auto-generated API documentation with full type details and source links.</p>
                 </a>
+                <a href="midi2kit.html" class="card">
+                    <h4><span class="badge badge-blue">High-Level</span> MIDI2Kit</h4>
+                    <p>MIDI2Client, MIDI2Device, presets for KORG BLE MIDI, type-safe property access.</p>
+                </a>
                 <a href="midi2core.html" class="card">
                     <h4><span class="badge badge-blue">Core</span> MIDI2Core</h4>
-                    <p>UMP message types, MUID, DeviceIdentity, value scaling utilities.</p>
+                    <p>UMP message types, MUID, DeviceIdentity, Mcoded7 encoding.</p>
                 </a>
                 <a href="midi2transport.html" class="card">
                     <h4><span class="badge badge-orange">Transport</span> MIDI2Transport</h4>
-                    <p>MIDITransport protocol, CoreMIDI wrapper, MockTransport for testing.</p>
+                    <p>MIDITransport protocol, CoreMIDI wrapper, SysExAssembler.</p>
                 </a>
                 <a href="midi2ci.html" class="card">
                     <h4><span class="badge badge-green">CI</span> MIDI2CI</h4>
@@ -469,7 +479,7 @@
                 </a>
                 <a href="midi2pe.html" class="card">
                     <h4><span class="badge badge-purple">PE</span> MIDI2PE</h4>
-                    <p>PEManager for GET/SET/Subscribe, typed JSON API, subscriptions.</p>
+                    <p>PEManager, batch SET, pipeline API, payload validation.</p>
                 </a>
             </div>
 

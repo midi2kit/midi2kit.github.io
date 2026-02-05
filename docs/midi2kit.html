@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI2Kit — MIDI2Kit Documentation</title>
+    <!-- Google Analytics -->
+    <script src="/assets/analytics.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-green: #30d158;
+            --accent-purple: #bf5af2;
+            --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .docs-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding-top: 64px;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 64px;
+            height: calc(100vh - 64px);
+            overflow-y: auto;
+            padding: 32px 24px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .sidebar-section { margin-bottom: 32px; }
+
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            margin-bottom: 12px;
+        }
+
+        .sidebar-links { list-style: none; }
+        .sidebar-links li { margin-bottom: 4px; }
+
+        .sidebar-links a {
+            display: block;
+            padding: 8px 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .sidebar-links a:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .sidebar-links a.active { background: rgba(10, 132, 255, 0.15); color: var(--accent-blue); }
+
+        .docs-content {
+            padding: 48px 64px;
+            max-width: 900px;
+        }
+
+        .docs-content h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .docs-content .module-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(10, 132, 255, 0.15);
+            color: var(--accent-blue);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+
+        .docs-content .lead {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+        }
+
+        .docs-content h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .docs-content h2:first-of-type {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
+        .docs-content h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .docs-content p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .docs-content ul {
+            margin-bottom: 16px;
+            padding-left: 24px;
+            color: var(--text-secondary);
+        }
+
+        .docs-content li {
+            margin-bottom: 8px;
+        }
+
+        .docs-content code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--accent-blue);
+        }
+
+        .docs-content pre {
+            background: var(--bg-code);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .docs-content pre code {
+            background: none;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        .docs-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .docs-content th, .docs-content td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .docs-content th {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-tertiary);
+            background: var(--bg-secondary);
+        }
+
+        .docs-content td { font-size: 14px; color: var(--text-secondary); }
+
+        .api-signature {
+            background: var(--bg-code);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .api-signature code {
+            background: none;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .callout {
+            background: rgba(10, 132, 255, 0.1);
+            border: 1px solid rgba(10, 132, 255, 0.3);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+        }
+
+        .callout-green {
+            background: rgba(48, 209, 88, 0.1);
+            border-color: rgba(48, 209, 88, 0.3);
+        }
+
+        .callout p { margin: 0; }
+
+        @media (max-width: 900px) {
+            .docs-layout { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .docs-content { padding: 32px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="../" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="docs-layout">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Getting Started</div>
+                <ul class="sidebar-links">
+                    <li><a href="installation.html">Installation</a></li>
+                    <li><a href="quickstart.html">Quick Start</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">API Reference</div>
+                <ul class="sidebar-links">
+                    <li><a href="midi2kit.html" class="active">MIDI2Kit</a></li>
+                    <li><a href="midi2core.html">MIDI2Core</a></li>
+                    <li><a href="midi2transport.html">MIDI2Transport</a></li>
+                    <li><a href="midi2ci.html">MIDI2CI</a></li>
+                    <li><a href="midi2pe.html">MIDI2PE</a></li>
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-title">On This Page</div>
+                <ul class="sidebar-links">
+                    <li><a href="#midi2client">MIDI2Client</a></li>
+                    <li><a href="#midi2device">MIDI2Device</a></li>
+                    <li><a href="#configuration">Configuration</a></li>
+                    <li><a href="#presets">Presets</a></li>
+                    <li><a href="#events">Events</a></li>
+                    <li><a href="#errors">Errors</a></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="docs-content">
+            <h1>MIDI2Kit</h1>
+            <span class="module-badge">High-Level API</span>
+            <p class="lead">Unified high-level API for MIDI 2.0 applications. MIDI2Client provides automatic device discovery, Property Exchange, and event streaming.</p>
+
+            <div class="callout callout-green">
+                <p><strong>Recommended for most use cases.</strong> MIDI2Kit combines MIDI2CI and MIDI2PE into a simple, unified API with automatic caching and optimized presets.</p>
+            </div>
+
+            <h2 id="midi2client">MIDI2Client</h2>
+            <p>The main entry point for MIDI 2.0 applications. Manages device discovery, Property Exchange, and event streaming.</p>
+
+            <div class="api-signature">
+                <code>public actor MIDI2Client</code>
+            </div>
+
+            <h3>Initialization</h3>
+            <pre><code class="language-swift">// Basic initialization
+let client = try MIDI2Client(name: "MyApp")
+
+// With custom configuration
+var config = MIDI2ClientConfiguration()
+config.discoveryInterval = .seconds(10)
+config.peTimeout = .seconds(5)
+let client = try MIDI2Client(name: "MyApp", configuration: config)
+
+// With preset for KORG BLE MIDI devices
+let client = try MIDI2Client(name: "MyApp", preset: .korgBLEMIDI)</code></pre>
+
+            <h3>Lifecycle Methods</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>start()</code></td><td>Start device discovery and event processing</td></tr>
+                    <tr><td><code>stop()</code></td><td>Stop all operations and release resources</td></tr>
+                    <tr><td><code>makeEventStream()</code></td><td>Create AsyncStream of MIDI2ClientEvent</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Properties</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>name</code></td><td>String</td><td>Client name used in MIDI-CI</td></tr>
+                    <tr><td><code>muid</code></td><td>MUID</td><td>This client's unique identifier</td></tr>
+                    <tr><td><code>isRunning</code></td><td>Bool</td><td>Whether the client is currently running</td></tr>
+                    <tr><td><code>configuration</code></td><td>MIDI2ClientConfiguration</td><td>Current configuration</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Property Exchange Methods</h3>
+            <pre><code class="language-swift">// Get device info
+let info = try await client.getDeviceInfo(from: device.muid)
+
+// Get resource list
+let resources = try await client.getResourceList(from: device.muid)
+
+// Generic GET
+let response = try await client.get("Volume", from: device.muid)
+
+// Generic SET
+try await client.set("Volume", data: ["level": 80], to: device.muid)</code></pre>
+
+            <h3>Diagnostics</h3>
+            <pre><code class="language-swift">// Get comprehensive diagnostics
+let diagnostics = await client.diagnostics
+print(diagnostics.lastDestinationDiagnostics)
+print(diagnostics.lastCommunicationTrace)</code></pre>
+
+            <h2 id="midi2device">MIDI2Device</h2>
+            <p>Wrapper for discovered MIDI-CI devices with automatic caching and type-safe property access.</p>
+
+            <div class="api-signature">
+                <code>public actor MIDI2Device</code>
+            </div>
+
+            <h3>Properties</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>muid</code></td><td>MUID</td><td>Device's unique identifier</td></tr>
+                    <tr><td><code>displayName</code></td><td>String</td><td>Human-readable name for UI</td></tr>
+                    <tr><td><code>identity</code></td><td>DeviceIdentity</td><td>Manufacturer, model, version</td></tr>
+                    <tr><td><code>supportsPropertyExchange</code></td><td>Bool</td><td>Whether PE is supported</td></tr>
+                    <tr><td><code>manufacturerName</code></td><td>String?</td><td>Known manufacturer name</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Cached Properties</h3>
+            <pre><code class="language-swift">// These are automatically cached after first fetch
+let info = try await device.deviceInfo       // DeviceInfo
+let resources = try await device.resourceList // [ResourceListEntry]
+
+// Invalidate cache to force refresh
+await device.invalidateCache()</code></pre>
+
+            <h3>Type-Safe Property Access</h3>
+            <pre><code class="language-swift">// Define your property type
+struct VolumeInfo: Codable {
+    let level: Int
+    let muted: Bool
+}
+
+// Get with type inference
+if let volume = try await device.getProperty("Volume", as: VolumeInfo.self) {
+    print("Level: \(volume.level), Muted: \(volume.muted)")
+}
+
+// Set property
+try await device.setProperty("Volume", value: VolumeInfo(level: 80, muted: false))</code></pre>
+
+            <h2 id="configuration">MIDI2ClientConfiguration</h2>
+            <p>Configuration options for MIDI2Client behavior.</p>
+
+            <div class="api-signature">
+                <code>public struct MIDI2ClientConfiguration: Sendable</code>
+            </div>
+
+            <h3>Discovery Settings</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>discoveryInterval</code></td><td>Duration</td><td>10s</td><td>How often to send Discovery Inquiry</td></tr>
+                    <tr><td><code>deviceTimeout</code></td><td>Duration</td><td>60s</td><td>Time before marking device as lost</td></tr>
+                    <tr><td><code>autoStartDiscovery</code></td><td>Bool</td><td>true</td><td>Start discovery on client start</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Property Exchange Settings</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>peTimeout</code></td><td>Duration</td><td>5s</td><td>Timeout for PE requests</td></tr>
+                    <tr><td><code>maxInflightPerDevice</code></td><td>Int</td><td>2</td><td>Concurrent requests per device</td></tr>
+                    <tr><td><code>warmUpBeforeResourceList</code></td><td>Bool</td><td>true</td><td>Send warm-up request before ResourceList</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Resilience Settings</h3>
+            <table>
+                <thead><tr><th>Property</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>maxRetries</code></td><td>Int</td><td>2</td><td>Number of retry attempts</td></tr>
+                    <tr><td><code>retryDelay</code></td><td>Duration</td><td>500ms</td><td>Delay between retries</td></tr>
+                </tbody>
+            </table>
+
+            <h2 id="presets">Configuration Presets</h2>
+            <p>Pre-configured settings optimized for common scenarios.</p>
+
+            <table>
+                <thead><tr><th>Preset</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>.standard</code></td><td>Default settings for most devices</td></tr>
+                    <tr><td><code>.korgBLEMIDI</code></td><td>Optimized for KORG Module Pro and BLE MIDI (extended timeouts, warm-up enabled)</td></tr>
+                    <tr><td><code>.explorer</code></td><td>For debugging and device exploration (verbose logging)</td></tr>
+                </tbody>
+            </table>
+
+            <pre><code class="language-swift">// Use preset
+let client = try MIDI2Client(name: "MyApp", preset: .korgBLEMIDI)
+
+// Or apply preset to existing config
+var config = MIDI2ClientConfiguration()
+config.applyPreset(.korgBLEMIDI)
+config.peTimeout = .seconds(15)  // Further customize
+let client = try MIDI2Client(name: "MyApp", configuration: config)</code></pre>
+
+            <h2 id="events">MIDI2ClientEvent</h2>
+            <p>Events emitted by MIDI2Client during operation.</p>
+
+            <div class="api-signature">
+                <code>public enum MIDI2ClientEvent: Sendable</code>
+            </div>
+
+            <table>
+                <thead><tr><th>Case</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>.deviceDiscovered(MIDI2Device)</code></td><td>New device found</td></tr>
+                    <tr><td><code>.deviceLost(MUID)</code></td><td>Device no longer responding</td></tr>
+                    <tr><td><code>.deviceUpdated(MIDI2Device)</code></td><td>Device info changed</td></tr>
+                    <tr><td><code>.discoveryStarted</code></td><td>Discovery process started</td></tr>
+                    <tr><td><code>.discoveryStopped</code></td><td>Discovery process stopped</td></tr>
+                    <tr><td><code>.notification(PENotification)</code></td><td>Property subscription update</td></tr>
+                    <tr><td><code>.started</code></td><td>Client started successfully</td></tr>
+                    <tr><td><code>.stopped</code></td><td>Client stopped</td></tr>
+                    <tr><td><code>.error(MIDI2Error)</code></td><td>Error occurred</td></tr>
+                </tbody>
+            </table>
+
+            <pre><code class="language-swift">for await event in await client.makeEventStream() {
+    switch event {
+    case .deviceDiscovered(let device):
+        print("Found: \(device.displayName)")
+    case .deviceLost(let muid):
+        print("Lost: \(muid)")
+    case .notification(let notification):
+        print("Property changed: \(notification.resource)")
+    case .error(let error):
+        print("Error: \(error)")
+    default:
+        break
+    }
+}</code></pre>
+
+            <h2 id="errors">MIDI2Error</h2>
+            <p>Structured errors for MIDI2Kit operations.</p>
+
+            <div class="api-signature">
+                <code>public enum MIDI2Error: Error, Sendable</code>
+            </div>
+
+            <table>
+                <thead><tr><th>Case</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>.deviceNotResponding(muid:resource:timeout:)</code></td><td>Device did not respond within timeout</td></tr>
+                    <tr><td><code>.propertyNotSupported(resource:)</code></td><td>Requested property not available</td></tr>
+                    <tr><td><code>.communicationFailed(underlying:)</code></td><td>Low-level communication error</td></tr>
+                    <tr><td><code>.deviceNotFound(muid:)</code></td><td>Device MUID not in known devices</td></tr>
+                    <tr><td><code>.clientNotRunning</code></td><td>Operation attempted on stopped client</td></tr>
+                    <tr><td><code>.cancelled</code></td><td>Operation was cancelled</td></tr>
+                    <tr><td><code>.transportError(Error)</code></td><td>CoreMIDI transport error</td></tr>
+                    <tr><td><code>.invalidConfiguration(String)</code></td><td>Invalid configuration value</td></tr>
+                </tbody>
+            </table>
+
+            <pre><code class="language-swift">do {
+    let info = try await client.getDeviceInfo(from: device.muid)
+} catch let error as MIDI2Error {
+    switch error {
+    case .deviceNotResponding(let muid, let resource, let timeout):
+        print("Device \(muid) timed out after \(timeout)")
+    case .propertyNotSupported(let resource):
+        print("Property '\(resource)' not supported")
+    default:
+        print("Error: \(error)")
+    }
+}</code></pre>
+        </main>
+    </div>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>
