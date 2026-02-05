@@ -81,6 +81,7 @@
                     <li><a href="#set-operations">SET Operations</a></li>
                     <li><a href="#subscriptions">Subscriptions</a></li>
                     <li><a href="#typed-api">Typed JSON API</a></li>
+                    <li><a href="#peresponder">PEResponder</a></li>
                     <li><a href="#error-handling">Error Handling</a></li>
                 </ul>
             </div>
@@ -307,6 +308,54 @@ let response = try await peManager.setJSON(
             <div class="note">
                 <p><strong>💡 Tip:</strong> Use <code>decodedBody</code> instead of <code>body</code> when parsing JSON responses. Property Exchange data is Mcoded7-encoded for MIDI transmission, and <code>decodedBody</code> handles the decoding automatically.</p>
             </div>
+
+            <h2 id="peresponder">PEResponder</h2>
+            <p>MIDI-CI Property Exchange responder for testing and device simulation. <strong>New in v1.0.5.</strong></p>
+
+            <div class="api-signature">
+                <code>public actor PEResponder</code>
+            </div>
+
+            <p>PEResponder handles incoming PE Inquiry messages (GET, SET, Subscribe) and sends appropriate Reply messages. It manages an in-memory resource store and subscription state.</p>
+
+            <h3>Resource Types</h3>
+            <table>
+                <thead><tr><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>InMemoryResource</code></td><td>Mutable resource stored in memory (for testing)</td></tr>
+                    <tr><td><code>StaticResource</code></td><td>Immutable resource with fixed value</td></tr>
+                    <tr><td><code>ComputedResource</code></td><td>Dynamic resource computed on each GET</td></tr>
+                    <tr><td><code>ListResource</code></td><td>Returns a JSON array (e.g., ResourceList)</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Usage with MockDevice</h3>
+            <p>PEResponder is typically used through MockDevice, which combines CIManager and PEResponder for complete device simulation.</p>
+
+            <pre><code class="language-swift">import MIDI2Kit
+import MIDI2PE
+
+// PEResponder is usually created internally by MockDevice
+let mockDevice = MockDevice(transport: transport, preset: .korgModulePro)
+
+// Add custom resource
+await mockDevice.peResponder.setResource("CustomProp", value: ["key": "value"])
+
+// Resource is now available via PE GET
+let response = try await peManager.get("CustomProp", from: mockDevice.handle)</code></pre>
+
+            <h3>Custom Resource Registration</h3>
+            <pre><code class="language-swift">// Register a computed resource
+await peResponder.registerResource(
+    ComputedResource(name: "Time") {
+        return ["timestamp": Date().timeIntervalSince1970]
+    }
+)
+
+// Register a static resource
+await peResponder.registerResource(
+    StaticResource(name: "Version", value: ["version": "1.0.0"])
+)</code></pre>
         </main>
     </div>
     <script>hljs.highlightAll();</script>

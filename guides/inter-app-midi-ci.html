@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inter-App MIDI-CI Limitations — MIDI2Kit</title>
+    <script src="/assets/analytics.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-green: #30d158;
+            --accent-purple: #bf5af2;
+            --accent-orange: #ff9f0a;
+            --accent-red: #ff453a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-weight: 600; }
+        .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1c1c1e; }
+        .container { max-width: 800px; margin: 0 auto; padding: 120px 24px 80px; }
+        h1 { font-size: 40px; font-weight: 700; margin-bottom: 16px; }
+        .lead { font-size: 18px; color: var(--text-secondary); margin-bottom: 48px; }
+        h2 { font-size: 24px; font-weight: 600; margin-top: 48px; margin-bottom: 16px; padding-top: 24px; border-top: 1px solid var(--border-color); }
+        h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+        h3 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+        p { margin-bottom: 16px; color: var(--text-secondary); }
+        ul, ol { margin-bottom: 16px; padding-left: 24px; color: var(--text-secondary); }
+        li { margin-bottom: 8px; }
+        code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent-blue); }
+        pre { background: var(--bg-code); border-radius: 12px; padding: 20px; overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--border-color); }
+        pre code { background: none; padding: 0; font-size: 13px; line-height: 1.7; color: var(--text-primary); }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); background: var(--bg-secondary); }
+        td { font-size: 14px; color: var(--text-secondary); }
+        .callout { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; }
+        .callout-warning { background: rgba(255, 69, 58, 0.1); border-color: rgba(255, 69, 58, 0.3); }
+        .callout-green { background: rgba(48, 209, 88, 0.1); border-color: rgba(48, 209, 88, 0.3); }
+        .callout p { margin: 0; }
+        .back-link { display: inline-block; margin-bottom: 24px; color: var(--accent-blue); text-decoration: none; font-size: 14px; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="../" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <a href="../guides/" class="back-link">&larr; Back to Guides</a>
+
+        <h1>Inter-App MIDI-CI Limitations</h1>
+        <p class="lead">Understanding the technical limitations of MIDI-CI communication between apps on the same iOS device, and the alternatives available.</p>
+
+        <div class="callout callout-warning">
+            <p><strong>Key Finding:</strong> MIDI-CI and Property Exchange between apps on the same iOS device is generally not possible due to how third-party apps implement MIDI-CI support.</p>
+        </div>
+
+        <h2>The Problem</h2>
+        <p>Many developers want to use MIDI-CI to communicate between their MIDI2Kit-powered app and other apps (like KORG Module Pro) on the same iOS device. Unfortunately, this doesn't work in most cases.</p>
+
+        <h3>Why It Doesn't Work</h3>
+        <p>The limitation stems from how third-party apps implement MIDI-CI:</p>
+
+        <ol>
+            <li><strong>BLE MIDI Only</strong> - Apps like KORG Module Pro only enable MIDI-CI on BLE MIDI interfaces, not on CoreMIDI Virtual Ports</li>
+            <li><strong>No Self-Connection</strong> - Bluetooth doesn't allow a device to connect to itself, so BLE MIDI within a single device is impossible</li>
+            <li><strong>Virtual Ports Ignored</strong> - Even though CoreMIDI Virtual Ports can technically transmit SysEx messages (including MIDI-CI), most apps don't listen for MIDI-CI on these ports</li>
+        </ol>
+
+        <h2>Tested Scenario</h2>
+        <p>We tested sending MIDI-CI Discovery Inquiry to KORG Module Pro via CoreMIDI Virtual Port:</p>
+
+        <table>
+            <thead><tr><th>Test</th><th>Result</th></tr></thead>
+            <tbody>
+                <tr><td>Virtual Port visible in CoreMIDI</td><td>Yes - "Module" destination found</td></tr>
+                <tr><td>Discovery Inquiry sent</td><td>Yes - SysEx transmitted successfully</td></tr>
+                <tr><td>Discovery Reply received</td><td>No - 15 second timeout, no response</td></tr>
+            </tbody>
+        </table>
+
+        <p><strong>Conclusion:</strong> KORG Module Pro ignores MIDI-CI messages from Virtual Ports. Its MIDI-CI implementation is tied to the BLE MIDI interface layer only.</p>
+
+        <h2>Technical Background</h2>
+
+        <h3>iOS Inter-App MIDI</h3>
+        <p>iOS supports inter-app MIDI communication via CoreMIDI Virtual Ports:</p>
+        <ul>
+            <li>Apps can create Virtual Sources and Destinations</li>
+            <li>Other apps can connect to these ports</li>
+            <li>Standard MIDI messages (Notes, CC, SysEx) can be exchanged</li>
+        </ul>
+
+        <h3>Why MIDI-CI Is Different</h3>
+        <p>While MIDI-CI technically uses SysEx messages (which can be sent via Virtual Ports), MIDI-CI requires:</p>
+        <ul>
+            <li>Both ends to actively listen for and respond to Discovery Inquiry</li>
+            <li>Proper MUID allocation and management</li>
+            <li>Property Exchange capability advertisement</li>
+        </ul>
+        <p>Most third-party apps only implement this on hardware interfaces (USB, BLE MIDI), not on software Virtual Ports.</p>
+
+        <h2>Working Alternatives</h2>
+
+        <div class="callout callout-green">
+            <p><strong>Good news:</strong> There are reliable alternatives for testing and development.</p>
+        </div>
+
+        <h3>Option 1: Two-Device Setup (Recommended for Real Devices)</h3>
+        <p>Use two iOS devices connected via BLE MIDI:</p>
+        <ul>
+            <li>Device A: Your MIDI2Kit app</li>
+            <li>Device B: KORG Module Pro (or other MIDI-CI device)</li>
+            <li>Connect via BLE MIDI</li>
+            <li>Full MIDI-CI/PE communication works</li>
+        </ul>
+
+        <h3>Option 2: MockDevice (Recommended for Testing)</h3>
+        <p>Use MIDI2Kit's built-in MockDevice for testing without hardware:</p>
+
+        <pre><code class="language-swift">import MIDI2Kit
+
+// Create loopback transport
+let (initiator, responder) = LoopbackTransport.createPair()
+
+// Create MockDevice simulating KORG Module Pro
+let mockDevice = MockDevice(
+    transport: responder,
+    preset: .korgModulePro
+)
+try await mockDevice.start()
+
+// Your app uses initiator transport
+let ciManager = CIManager(transport: initiator, ...)
+let peManager = PEManager(transport: initiator, ...)
+
+// Full MIDI-CI/PE testing without hardware
+await ciManager.startDiscovery()
+let response = try await peManager.get("DeviceInfo", from: mockDevice.handle)</code></pre>
+
+        <p>Benefits of MockDevice:</p>
+        <ul>
+            <li>No hardware required</li>
+            <li>Fast and deterministic testing</li>
+            <li>Simulates various device types</li>
+            <li>Customizable responses</li>
+        </ul>
+
+        <h3>Option 3: Two MIDI2Kit Apps (Same Device)</h3>
+        <p>If you control both apps, you can implement MIDI-CI on Virtual Ports:</p>
+        <ul>
+            <li>Both apps use MIDI2Kit</li>
+            <li>Configure CIManager to listen on Virtual Ports</li>
+            <li>Full MIDI-CI/PE communication on same device</li>
+        </ul>
+        <p>This only works when both apps are designed to support MIDI-CI on Virtual Ports.</p>
+
+        <h2>Summary</h2>
+
+        <table>
+            <thead><tr><th>Scenario</th><th>Works?</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>MIDI2Kit &harr; KORG Module (Same Device)</td><td>No</td><td>KORG ignores Virtual Port MIDI-CI</td></tr>
+                <tr><td>MIDI2Kit &harr; KORG Module (BLE MIDI)</td><td>Yes</td><td>Requires two devices</td></tr>
+                <tr><td>MIDI2Kit &harr; MockDevice (Same App)</td><td>Yes</td><td>Recommended for testing</td></tr>
+                <tr><td>MIDI2Kit &harr; MIDI2Kit App (Same Device)</td><td>Yes</td><td>Both apps must use MIDI2Kit</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Recommendations</h2>
+        <ol>
+            <li><strong>For Development/Testing:</strong> Use MockDevice with LoopbackTransport</li>
+            <li><strong>For Real Device Testing:</strong> Use two-device BLE MIDI setup</li>
+            <li><strong>For Production:</strong> Support both BLE MIDI and USB MIDI interfaces for maximum compatibility</li>
+        </ol>
+    </div>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

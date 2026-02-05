@@ -591,7 +591,7 @@
     <section class="hero">
         <div class="hero-badge">
             <span>🎵</span>
-            <span>MIDI 2.0 Ready</span>
+            <span>v1.0.5 — MIDI-CI Responder & MockDevice</span>
         </div>
         <h1>MIDI2Kit</h1>
         <p>A Swift library for implementing MIDI 2.0 — UMP, MIDI-CI, and Property Exchange — in macOS and iOS applications.</p>
@@ -627,7 +627,17 @@
                 <div class="feature-card">
                     <div class="feature-icon orange">🔌</div>
                     <h3>Transport Abstraction</h3>
-                    <p>Clean separation from CoreMIDI with MockTransport for testing. Production and test code share the same interface.</p>
+                    <p>Clean separation from CoreMIDI with LoopbackTransport for in-process testing. Production and test code share the same interface.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon blue">🧪</div>
+                    <h3>MockDevice & Responder</h3>
+                    <p>Built-in MIDI-CI Responder for testing without hardware. MockDevice presets for KORG, Roland, Yamaha, and generic devices.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon green">⚡</div>
+                    <h3>Batch & Pipeline Operations</h3>
+                    <p>Batch GET/SET operations, pipeline-based workflows (GET→Transform→SET), and payload validation before transmission.</p>
                 </div>
             </div>
         </div>
@@ -659,6 +669,7 @@
             <div class="code-tabs">
                 <button class="code-tab active">Discovery</button>
                 <button class="code-tab">Property Exchange</button>
+                <button class="code-tab">MockDevice</button>
             </div>
             <div class="code-block" id="code-discovery">
                 <div class="code-header">
@@ -715,6 +726,39 @@ if case .deviceDiscovered(let device) = event {
     }
 }</code></pre>
             </div>
+            <div class="code-block" id="code-mockdevice" style="display: none;">
+                <div class="code-header">
+                    <span class="code-filename">MockDeviceTest.swift</span>
+                    <button class="code-copy" onclick="copyCode(this)">Copy</button>
+                </div>
+                <pre><code class="language-swift">import MIDI2Kit
+import MIDI2Transport
+import MIDI2CI
+import MIDI2PE
+
+// Create loopback transport pair for in-process testing
+let (initiatorTransport, responderTransport) = LoopbackTransport.createPair()
+
+// Create MockDevice with KORG preset
+let mockDevice = MockDevice(
+    transport: responderTransport,
+    preset: .korgModulePro
+)
+try await mockDevice.start()
+
+// Create initiator-side managers
+let ciManager = CIManager(transport: initiatorTransport, ...)
+let peManager = PEManager(transport: initiatorTransport, ...)
+try await ciManager.start()
+
+// Discover the mock device
+await ciManager.startDiscovery()
+// MockDevice responds to Discovery Inquiry automatically
+
+// PE requests work just like with real devices
+let response = try await peManager.get("DeviceInfo", from: mockDevice.handle)
+print("Mock device info: \(response.bodyString)")</code></pre>
+            </div>
         </div>
     </section>
 
@@ -731,7 +775,7 @@ if case .deviceDiscovered(let device) = event {
                         <div class="module-icon" style="background: rgba(10, 132, 255, 0.15);">🎵</div>
                         <h3>MIDI2Kit</h3>
                     </div>
-                    <p>High-level unified API with MIDI2Client and MIDI2Device. Automatic caching, presets for KORG BLE MIDI, and type-safe property access.</p>
+                    <p>High-level unified API with MIDI2Client and MIDI2Device. MockDevice for hardware-free testing with presets for KORG, Roland, Yamaha.</p>
                     <div class="module-links">
                         <span class="module-link">View API →</span>
                     </div>
@@ -751,7 +795,7 @@ if case .deviceDiscovered(let device) = event {
                         <div class="module-icon" style="background: rgba(255, 159, 10, 0.15);">🔌</div>
                         <h3>MIDI2Transport</h3>
                     </div>
-                    <p>Protocol abstraction for MIDI I/O. Includes CoreMIDITransport for production and MockMIDITransport for testing.</p>
+                    <p>Protocol abstraction for MIDI I/O. CoreMIDITransport for production, LoopbackTransport for in-process testing.</p>
                     <div class="module-links">
                         <span class="module-link">View API →</span>
                     </div>
@@ -771,7 +815,7 @@ if case .deviceDiscovered(let device) = event {
                         <div class="module-icon" style="background: rgba(191, 90, 242, 0.15);">🔄</div>
                         <h3>MIDI2PE</h3>
                     </div>
-                    <p>Property Exchange operations: GET, SET, Subscribe. Batch SET, pipeline API, and payload validation.</p>
+                    <p>Property Exchange: GET, SET, Subscribe. PEResponder for testing, batch operations, pipeline API, and validation.</p>
                     <div class="module-links">
                         <span class="module-link">View API →</span>
                     </div>
@@ -813,7 +857,8 @@ if case .deviceDiscovered(let device) = event {
                         <li><a href="guides/architecture.html">Architecture Overview</a></li>
                         <li><a href="guides/property-exchange.html">Property Exchange Deep Dive</a></li>
                         <li><a href="guides/korg-ble-midi.html">KORG BLE MIDI Guide</a></li>
-                        <li><a href="guides/testing.html">Testing with MockTransport</a></li>
+                        <li><a href="guides/mockdevice.html">Testing with MockDevice</a></li>
+                        <li><a href="guides/inter-app-midi-ci.html">Inter-App MIDI-CI Limitations</a></li>
                     </ul>
                 </div>
             </div>
@@ -841,12 +886,20 @@ if case .deviceDiscovered(let device) = event {
                 this.classList.add('active');
 
                 // Toggle code blocks for PE section
-                if (this.textContent === 'Discovery') {
-                    document.getElementById('code-discovery').style.display = 'block';
-                    document.getElementById('code-pe').style.display = 'none';
-                } else if (this.textContent === 'Property Exchange') {
-                    document.getElementById('code-discovery').style.display = 'none';
-                    document.getElementById('code-pe').style.display = 'block';
+                const discovery = document.getElementById('code-discovery');
+                const pe = document.getElementById('code-pe');
+                const mockdevice = document.getElementById('code-mockdevice');
+                if (discovery && pe && mockdevice) {
+                    discovery.style.display = 'none';
+                    pe.style.display = 'none';
+                    mockdevice.style.display = 'none';
+                    if (this.textContent === 'Discovery') {
+                        discovery.style.display = 'block';
+                    } else if (this.textContent === 'Property Exchange') {
+                        pe.style.display = 'block';
+                    } else if (this.textContent === 'MockDevice') {
+                        mockdevice.style.display = 'block';
+                    }
                 }
             });
         });

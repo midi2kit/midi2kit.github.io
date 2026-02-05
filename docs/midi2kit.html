@@ -313,6 +313,7 @@
                 <ul class="sidebar-links">
                     <li><a href="#midi2client">MIDI2Client</a></li>
                     <li><a href="#midi2device">MIDI2Device</a></li>
+                    <li><a href="#mockdevice">MockDevice</a></li>
                     <li><a href="#configuration">Configuration</a></li>
                     <li><a href="#presets">Presets</a></li>
                     <li><a href="#events">Events</a></li>
@@ -431,6 +432,59 @@ if let volume = try await device.getProperty("Volume", as: VolumeInfo.self) {
 
 // Set property
 try await device.setProperty("Volume", value: VolumeInfo(level: 80, muted: false))</code></pre>
+
+            <h2 id="mockdevice">MockDevice</h2>
+            <p>Built-in MIDI-CI Responder for testing without hardware. Simulate devices with customizable presets.</p>
+
+            <div class="api-signature">
+                <code>public actor MockDevice</code>
+            </div>
+
+            <div class="callout callout-green">
+                <p><strong>New in v1.0.5.</strong> MockDevice allows testing MIDI-CI and Property Exchange without physical MIDI hardware.</p>
+            </div>
+
+            <h3>Creating a MockDevice</h3>
+            <pre><code class="language-swift">import MIDI2Kit
+import MIDI2Transport
+
+// Create loopback transport pair
+let (initiatorTransport, responderTransport) = LoopbackTransport.createPair()
+
+// Create mock device with preset
+let mockDevice = MockDevice(
+    transport: responderTransport,
+    preset: .korgModulePro
+)
+try await mockDevice.start()</code></pre>
+
+            <h3>Available Presets</h3>
+            <table>
+                <thead><tr><th>Preset</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>.korgModulePro</code></td><td>Simulates KORG Module Pro with typical PE resources</td></tr>
+                    <tr><td><code>.generic</code></td><td>Generic MIDI 2.0 device with basic resources</td></tr>
+                    <tr><td><code>.rolandStyle</code></td><td>Roland-style device configuration</td></tr>
+                    <tr><td><code>.yamahaStyle</code></td><td>Yamaha-style device configuration</td></tr>
+                    <tr><td><code>.minimal</code></td><td>Minimal device for basic testing</td></tr>
+                </tbody>
+            </table>
+
+            <h3>Testing with MockDevice</h3>
+            <pre><code class="language-swift">// Set up initiator side
+let ciManager = CIManager(transport: initiatorTransport, ...)
+let peManager = PEManager(transport: initiatorTransport, ...)
+try await ciManager.start()
+
+// Discover the mock device
+await ciManager.startDiscovery()
+// MockDevice responds to Discovery Inquiry automatically
+
+// PE operations work exactly like with real devices
+let response = try await peManager.get("DeviceInfo", from: mockDevice.handle)
+
+// Custom resources
+await mockDevice.setResource("CustomProp", value: ["key": "value"])</code></pre>
 
             <h2 id="configuration">MIDI2ClientConfiguration</h2>
             <p>Configuration options for MIDI2Client behavior.</p>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing with MockDevice — MIDI2Kit</title>
+    <script src="/assets/analytics.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-green: #30d158;
+            --accent-purple: #bf5af2;
+            --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; }
+        nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-color); }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; }
+        .nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); font-weight: 600; }
+        .nav-logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #1c1c1e; }
+        .container { max-width: 800px; margin: 0 auto; padding: 120px 24px 80px; }
+        h1 { font-size: 40px; font-weight: 700; margin-bottom: 16px; }
+        .lead { font-size: 18px; color: var(--text-secondary); margin-bottom: 48px; }
+        h2 { font-size: 24px; font-weight: 600; margin-top: 48px; margin-bottom: 16px; padding-top: 24px; border-top: 1px solid var(--border-color); }
+        h2:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+        h3 { font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+        p { margin-bottom: 16px; color: var(--text-secondary); }
+        ul, ol { margin-bottom: 16px; padding-left: 24px; color: var(--text-secondary); }
+        li { margin-bottom: 8px; }
+        code { font-family: 'JetBrains Mono', monospace; font-size: 14px; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--accent-blue); }
+        pre { background: var(--bg-code); border-radius: 12px; padding: 20px; overflow-x: auto; margin-bottom: 24px; border: 1px solid var(--border-color); }
+        pre code { background: none; padding: 0; font-size: 13px; line-height: 1.7; color: var(--text-primary); }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); background: var(--bg-secondary); }
+        td { font-size: 14px; color: var(--text-secondary); }
+        .callout { background: rgba(10, 132, 255, 0.1); border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; }
+        .callout-green { background: rgba(48, 209, 88, 0.1); border-color: rgba(48, 209, 88, 0.3); }
+        .callout p { margin: 0; }
+        .back-link { display: inline-block; margin-bottom: 24px; color: var(--accent-blue); text-decoration: none; font-size: 14px; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="../" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <a href="../guides/" class="back-link">&larr; Back to Guides</a>
+
+        <h1>Testing with MockDevice</h1>
+        <p class="lead">MockDevice enables testing MIDI-CI and Property Exchange without physical MIDI hardware. Simulate real devices with customizable presets for comprehensive unit and integration testing.</p>
+
+        <div class="callout callout-green">
+            <p><strong>New in v1.0.5.</strong> MockDevice, LoopbackTransport, and PEResponder provide complete in-process testing capabilities.</p>
+        </div>
+
+        <h2>Overview</h2>
+        <p>MockDevice combines several components to simulate a MIDI 2.0 device:</p>
+        <ul>
+            <li><strong>LoopbackTransport</strong> - Routes messages between initiator and responder within the same process</li>
+            <li><strong>CIManager</strong> (responder mode) - Handles Discovery Inquiry/Reply</li>
+            <li><strong>PEResponder</strong> - Handles PE GET/SET Inquiry and sends Reply messages</li>
+        </ul>
+
+        <h2>Quick Start</h2>
+        <p>Create a loopback transport pair and set up MockDevice:</p>
+
+        <pre><code class="language-swift">import MIDI2Kit
+import MIDI2Transport
+import MIDI2CI
+import MIDI2PE
+
+// 1. Create loopback transport pair
+let (initiatorTransport, responderTransport) = LoopbackTransport.createPair()
+
+// 2. Create MockDevice with preset
+let mockDevice = MockDevice(
+    transport: responderTransport,
+    preset: .korgModulePro
+)
+try await mockDevice.start()
+
+// 3. Create initiator-side managers
+let ciManager = CIManager(
+    transport: initiatorTransport,
+    identity: DeviceIdentity(manufacturer: 0x00, family: 0x00, model: 0x00, revision: 0x0100)
+)
+let peManager = PEManager(transport: initiatorTransport, ciManager: ciManager)
+
+try await ciManager.start()
+try await peManager.startReceiving()
+
+// 4. Start discovery - MockDevice responds automatically
+await ciManager.startDiscovery()
+
+// Wait for discovery
+try await Task.sleep(for: .milliseconds(100))
+
+// 5. Use PE operations
+let response = try await peManager.get("DeviceInfo", from: mockDevice.handle)
+print("DeviceInfo: \(response.bodyString ?? "")")</code></pre>
+
+        <h2>Available Presets</h2>
+        <p>MockDevice includes several presets for common device types:</p>
+
+        <table>
+            <thead><tr><th>Preset</th><th>Description</th><th>Resources</th></tr></thead>
+            <tbody>
+                <tr><td><code>.korgModulePro</code></td><td>KORG Module Pro simulation</td><td>DeviceInfo, ResourceList, CMList, ChannelList</td></tr>
+                <tr><td><code>.generic</code></td><td>Generic MIDI 2.0 device</td><td>DeviceInfo, ResourceList</td></tr>
+                <tr><td><code>.rolandStyle</code></td><td>Roland-style device</td><td>DeviceInfo, ResourceList, PatchList</td></tr>
+                <tr><td><code>.yamahaStyle</code></td><td>Yamaha-style device</td><td>DeviceInfo, ResourceList, VoiceList</td></tr>
+                <tr><td><code>.minimal</code></td><td>Minimal for basic testing</td><td>DeviceInfo only</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Custom Resources</h2>
+        <p>Add custom resources to MockDevice for testing specific scenarios:</p>
+
+        <pre><code class="language-swift">// Add a simple resource
+await mockDevice.setResource("Volume", value: ["level": 80, "muted": false])
+
+// Get the resource via PE
+let response = try await peManager.get("Volume", from: mockDevice.handle)
+
+// Modify resource value
+await mockDevice.setResource("Volume", value: ["level": 50, "muted": true])
+
+// PE GET returns updated value
+let updated = try await peManager.get("Volume", from: mockDevice.handle)</code></pre>
+
+        <h2>Resource Types</h2>
+        <p>PEResponder supports different resource types for various testing needs:</p>
+
+        <h3>InMemoryResource</h3>
+        <p>Mutable resource that stores values in memory. Supports both GET and SET.</p>
+
+        <pre><code class="language-swift">let resource = InMemoryResource(
+    name: "Volume",
+    initialValue: ["level": 80]
+)
+await mockDevice.peResponder.registerResource(resource)
+
+// SET updates the value
+try await peManager.set("Volume", data: ["level": 50], to: mockDevice.handle)
+
+// GET returns the updated value
+let response = try await peManager.get("Volume", from: mockDevice.handle)
+// Returns: {"level": 50}</code></pre>
+
+        <h3>StaticResource</h3>
+        <p>Immutable resource that always returns the same value. GET-only.</p>
+
+        <pre><code class="language-swift">let resource = StaticResource(
+    name: "FirmwareVersion",
+    value: ["version": "1.2.3", "build": 456]
+)
+await mockDevice.peResponder.registerResource(resource)</code></pre>
+
+        <h3>ComputedResource</h3>
+        <p>Dynamic resource that computes value on each GET. Useful for testing time-dependent values.</p>
+
+        <pre><code class="language-swift">let resource = ComputedResource(name: "CurrentTime") {
+    return ["timestamp": Date().timeIntervalSince1970]
+}
+await mockDevice.peResponder.registerResource(resource)</code></pre>
+
+        <h2>Unit Testing Example</h2>
+        <p>Complete example for unit testing with Swift Testing:</p>
+
+        <pre><code class="language-swift">import Testing
+import MIDI2Kit
+import MIDI2Transport
+import MIDI2CI
+import MIDI2PE
+
+@Suite struct PropertyExchangeTests {
+    @Test func getDeviceInfoReturnsExpectedData() async throws {
+        // Setup
+        let (initiator, responder) = LoopbackTransport.createPair()
+        let mockDevice = MockDevice(transport: responder, preset: .generic)
+        try await mockDevice.start()
+
+        let ciManager = CIManager(transport: initiator, ...)
+        let peManager = PEManager(transport: initiator, ciManager: ciManager)
+        try await ciManager.start()
+
+        await ciManager.startDiscovery()
+        try await Task.sleep(for: .milliseconds(100))
+
+        // Test
+        let response = try await peManager.get("DeviceInfo", from: mockDevice.handle)
+
+        // Verify
+        #expect(response.isSuccess)
+        #expect(response.bodyString?.contains("manufacturer") == true)
+
+        // Cleanup
+        await mockDevice.stop()
+        await ciManager.stop()
+    }
+
+    @Test func setResourceUpdatesValue() async throws {
+        let (initiator, responder) = LoopbackTransport.createPair()
+        let mockDevice = MockDevice(transport: responder, preset: .minimal)
+        await mockDevice.setResource("TestProp", value: ["value": 0])
+        try await mockDevice.start()
+
+        // ... setup managers ...
+
+        // SET operation
+        try await peManager.set("TestProp", data: ["value": 42], to: mockDevice.handle)
+
+        // Verify update
+        let response = try await peManager.get("TestProp", from: mockDevice.handle)
+        #expect(response.bodyString?.contains("42") == true)
+    }
+}</code></pre>
+
+        <h2>Testing Subscriptions</h2>
+        <p>MockDevice supports PE subscriptions for testing notification flows:</p>
+
+        <pre><code class="language-swift">// Subscribe to resource changes
+let subscription = try await peManager.subscribe("Volume", from: mockDevice.handle)
+
+// Trigger a notification from MockDevice
+await mockDevice.notifySubscribers("Volume", value: ["level": 100])
+
+// Notification arrives via PEManager
+for await notification in await peManager.makeNotificationStream() {
+    if notification.resource == "Volume" {
+        print("Volume changed: \(notification.body)")
+        break
+    }
+}</code></pre>
+
+        <h2>Best Practices</h2>
+        <ul>
+            <li><strong>Isolate tests</strong> - Create fresh MockDevice and transports for each test</li>
+            <li><strong>Use presets</strong> - Start with a preset and add custom resources as needed</li>
+            <li><strong>Test edge cases</strong> - Use MockDevice to simulate error conditions, timeouts, and NAKs</li>
+            <li><strong>Clean up</strong> - Always call <code>stop()</code> on MockDevice and managers after tests</li>
+        </ul>
+    </div>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

@@ -76,6 +76,7 @@
                 <ul class="sidebar-links">
                     <li><a href="#protocol">MIDITransport Protocol</a></li>
                     <li><a href="#coremidi">CoreMIDITransport</a></li>
+                    <li><a href="#loopback">LoopbackTransport</a></li>
                     <li><a href="#mock">MockMIDITransport</a></li>
                     <li><a href="#endpoints">Endpoint Types</a></li>
                 </ul>
@@ -149,6 +150,49 @@ for await _ in transport.setupChanged {
             <div class="warning">
                 <p><strong>⚠️ Important:</strong> <code>MIDISourceID</code> and <code>MIDIDestinationID</code> are session-scoped handles, not persistent IDs. They may change across reboots or device reconnections. For persistent identification, use <code>uniqueID</code> from endpoint info.</p>
             </div>
+
+            <h2 id="loopback">LoopbackTransport</h2>
+            <p>In-process loopback transport for testing initiator-responder communication without CoreMIDI. <strong>New in v1.0.5.</strong></p>
+
+            <div class="api-signature">
+                <code>public actor LoopbackTransport: MIDITransport</code>
+            </div>
+
+            <pre><code class="language-swift">// Create a loopback pair
+let (initiatorTransport, responderTransport) = LoopbackTransport.createPair()
+
+// Messages sent on one transport are received on the other
+try await initiatorTransport.send(data, to: destinationID)
+// → responderTransport.received will emit this data
+
+try await responderTransport.send(replyData, to: destinationID)
+// → initiatorTransport.received will emit this data</code></pre>
+
+            <h3>Use Cases</h3>
+            <table>
+                <thead><tr><th>Use Case</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>MockDevice Testing</td><td>Test MIDI-CI initiator ↔ responder without hardware</td></tr>
+                    <tr><td>Unit Tests</td><td>Fast, deterministic MIDI message testing</td></tr>
+                    <tr><td>Integration Tests</td><td>Test full discovery → PE flow in isolation</td></tr>
+                </tbody>
+            </table>
+
+            <h3>With MockDevice</h3>
+            <pre><code class="language-swift">let (initiatorTransport, responderTransport) = LoopbackTransport.createPair()
+
+// Create mock device on responder side
+let mockDevice = MockDevice(transport: responderTransport, preset: .korgModulePro)
+try await mockDevice.start()
+
+// Create managers on initiator side
+let ciManager = CIManager(transport: initiatorTransport, ...)
+let peManager = PEManager(transport: initiatorTransport, ...)
+try await ciManager.start()
+
+// Discovery and PE operations work seamlessly
+await ciManager.startDiscovery()
+let response = try await peManager.get("DeviceInfo", from: mockDevice.handle)</code></pre>
 
             <h2 id="mock">MockMIDITransport</h2>
             <p>Mock implementation for unit testing without real MIDI hardware.</p>
