@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apps — MIDI2Kit</title>
+    <script src="/assets/analytics.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="Apps built with MIDI2Kit — Midi2Explorer and simpleMIDIController for iOS, iPadOS, and macOS.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --accent-green: #30d158;
+            --accent-purple: #bf5af2;
+            --accent-orange: #ff9f0a;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--text-primary);
+        }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover {
+            background: #252525;
+        }
+
+        /* Page Header */
+        .page-header {
+            padding: 140px 24px 64px;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: clamp(36px, 6vw, 56px);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Apps Grid */
+        .apps-section {
+            padding: 0 24px 120px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 32px;
+        }
+
+        @media (max-width: 500px) {
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* App Card */
+        .app-card {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-4px);
+        }
+
+        .app-card-body {
+            padding: 32px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-card-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .app-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .app-icon.explorer {
+            background: linear-gradient(135deg, rgba(10, 132, 255, 0.2), rgba(191, 90, 242, 0.2));
+            border: 1px solid rgba(10, 132, 255, 0.3);
+        }
+
+        .app-icon.controller {
+            background: linear-gradient(135deg, rgba(48, 209, 88, 0.2), rgba(255, 159, 10, 0.2));
+            border: 1px solid rgba(48, 209, 88, 0.3);
+        }
+
+        .app-title-group h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .app-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .app-description {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .app-features {
+            list-style: none;
+            margin-bottom: 28px;
+        }
+
+        .app-features li {
+            padding: 8px 0;
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .app-features li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .feature-dot.blue { background: var(--accent-blue); }
+        .feature-dot.green { background: var(--accent-green); }
+        .feature-dot.purple { background: var(--accent-purple); }
+        .feature-dot.orange { background: var(--accent-orange); }
+
+        .app-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 28px;
+        }
+
+        .meta-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 100px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .app-actions {
+            margin-top: auto;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            width: 100%;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-coming-soon {
+            background: var(--bg-tertiary);
+            color: var(--text-tertiary);
+            border: 1px solid var(--border-color);
+            cursor: default;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .badge-blue {
+            background: rgba(10, 132, 255, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .badge-green {
+            background: rgba(48, 209, 88, 0.15);
+            color: var(--accent-green);
+        }
+
+        .badge-orange {
+            background: rgba(255, 159, 10, 0.15);
+            color: var(--accent-orange);
+        }
+
+        /* Built with MIDI2Kit */
+        .built-with {
+            padding: 80px 24px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .built-with p {
+            color: var(--text-tertiary);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .built-with a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .built-with a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .app-card-header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/" class="active">Apps</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <h1>Apps</h1>
+        <p>MIDI 2.0 apps built with MIDI2Kit for iOS, iPadOS, and macOS</p>
+    </section>
+
+    <!-- Apps Grid -->
+    <section class="apps-section">
+        <div class="container">
+            <div class="apps-grid">
+
+                <!-- Midi2Explorer -->
+                <div class="app-card">
+                    <div class="app-card-body">
+                        <div class="app-card-header">
+                            <div class="app-icon explorer">🔍</div>
+                            <div class="app-title-group">
+                                <h2>Midi2Explorer <span class="badge badge-orange">Coming Soon</span></h2>
+                                <span class="app-subtitle">MIDI 2.0 Diagnostic Tool</span>
+                            </div>
+                        </div>
+                        <p class="app-description">
+                            MIDI 2.0 devices at your fingertips. Explore MIDI-CI capabilities and Property Exchange resources of connected devices in real time.
+                        </p>
+                        <ul class="app-features">
+                            <li><span class="feature-dot blue"></span>MIDI-CI Discovery &amp; Capability Inquiry</li>
+                            <li><span class="feature-dot purple"></span>Property Exchange (GET / SET / Subscribe)</li>
+                            <li><span class="feature-dot green"></span>Real-time device monitoring</li>
+                            <li><span class="feature-dot orange"></span>Built on MIDI2Kit</li>
+                        </ul>
+                        <div class="app-meta">
+                            <span class="meta-tag">iPhone</span>
+                            <span class="meta-tag">iPad</span>
+                            <span class="meta-tag">Mac</span>
+                            <span class="meta-tag">MIDI 2.0</span>
+                        </div>
+                        <div class="app-actions">
+                            <span class="btn btn-coming-soon">Coming Soon</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- simpleMIDIController -->
+                <div class="app-card">
+                    <div class="app-card-body">
+                        <div class="app-card-header">
+                            <div class="app-icon controller">🎛️</div>
+                            <div class="app-title-group">
+                                <h2>simpleMIDIController <span class="badge badge-green">Available</span></h2>
+                                <span class="app-subtitle">6-Fader MIDI CC Controller</span>
+                            </div>
+                        </div>
+                        <p class="app-description">
+                            Turn your iPhone or iPad into a 6-slider MIDI CC controller. Perfect for live performances, studio production, and controlling MIDI-compatible hardware and software.
+                        </p>
+                        <ul class="app-features">
+                            <li><span class="feature-dot green"></span>6 full-screen vertical faders with real-time values</li>
+                            <li><span class="feature-dot blue"></span>Virtual MIDI port for inter-app connectivity</li>
+                            <li><span class="feature-dot purple"></span>Bluetooth LE MIDI support</li>
+                            <li><span class="feature-dot orange"></span>Color-coded sliders &amp; sleep prevention</li>
+                        </ul>
+                        <div class="app-meta">
+                            <span class="meta-tag">iPhone</span>
+                            <span class="meta-tag">iPad</span>
+                            <span class="meta-tag">Mac (Apple Silicon)</span>
+                            <span class="meta-tag">iOS 18.6+</span>
+                        </div>
+                        <div class="app-actions">
+                            <a href="https://apps.apple.com/jp/app/simplemidicontroller/id6757380884" class="btn btn-primary">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                                App Store
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Built with MIDI2Kit -->
+    <section class="built-with">
+        <p>These apps are built with</p>
+        <a href="/">MIDI2Kit — The SDK for MIDI 2.0</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+</body>
+</html>
