@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started with MIDI 2.0 in Swift — A Developer's Guide | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="Learn how to implement MIDI 2.0 in your Swift app. From UMP basics to Device Discovery and Property Exchange with MIDI2Kit.">
+    <meta name="keywords" content="MIDI 2.0 Swift, CoreMIDI MIDI2, Swift MIDI library, UMP Swift, MIDI-CI Swift, MIDI2Kit tutorial">
+    <meta property="og:title" content="Getting Started with MIDI 2.0 in Swift — A Developer's Guide">
+    <meta property="og:description" content="Learn how to implement MIDI 2.0 in your Swift app. From UMP basics to Device Discovery and Property Exchange with MIDI2Kit.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-08-swift-midi2-getting-started.html">
+    <meta property="article:published_time" content="2026-03-08">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Getting Started with MIDI 2.0 in Swift — A Developer's Guide">
+    <meta name="twitter:description" content="Learn how to implement MIDI 2.0 in your Swift app. From UMP basics to Device Discovery and Property Exchange with MIDI2Kit.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-08-swift-midi2-getting-started.html">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 8, 2026</span>
+                <span class="post-tag">Tutorial</span>
+                <span>12 min read</span>
+            </div>
+            <h1>Getting Started with MIDI 2.0 in Swift &mdash; A Developer&rsquo;s Guide</h1>
+            <p class="post-subtitle">Learn how to implement MIDI 2.0 in your Swift app. From UMP basics to Device Discovery and Property Exchange &mdash; a step-by-step guide using MIDI2Kit.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>Why You Should Care About MIDI 2.0 Now</h2>
+
+                <p>If you're building a music app on Apple platforms, MIDI 2.0 is no longer a future consideration &mdash; it's a present reality. macOS has supported MIDI 2.0 at the CoreMIDI level since macOS 11, and the ecosystem of MIDI 2.0 hardware and software is growing rapidly.</p>
+
+                <p>MIDI 2.0 brings transformative improvements over the 40-year-old MIDI 1.0 standard:</p>
+
+                <ul>
+                    <li><strong>32-bit velocity and controller resolution</strong> &mdash; 65,536 times more precision than MIDI 1.0's 7-bit values</li>
+                    <li><strong>Per-note controllers</strong> &mdash; apply pitch bend, pressure, and custom parameters to individual notes</li>
+                    <li><strong>Device Discovery (MIDI-CI)</strong> &mdash; devices automatically negotiate capabilities</li>
+                    <li><strong>Property Exchange</strong> &mdash; query and set device parameters without proprietary SysEx</li>
+                    <li><strong>Bidirectional communication</strong> &mdash; devices can talk back to hosts</li>
+                </ul>
+
+                <p>But Apple's CoreMIDI only provides the <strong>transport layer</strong>: sending and receiving raw UMP packets. Everything above that &mdash; discovery, property exchange, protocol negotiation &mdash; is left to you. That's where MIDI2Kit comes in.</p>
+
+                <blockquote><p>MIDI2Kit handles the protocol complexity so you can focus on building great music experiences.</p></blockquote>
+
+                <h2>MIDI 2.0 Basics for Swift Developers</h2>
+
+                <h3>The Universal MIDI Packet (UMP)</h3>
+
+                <p>MIDI 2.0 replaces the byte-stream format of MIDI 1.0 with a new packet format called the <strong>Universal MIDI Packet</strong> (UMP). Every UMP is 32-bit aligned and can be 1, 2, 3, or 4 words (32-bit integers) long. The first 4 bits of the first word encode the <strong>message type</strong>, which determines the packet length and semantics.</p>
+
+                <p>Here's how the message types break down:</p>
+
+                <ul>
+                    <li><strong>Type 0x0</strong> &mdash; Utility messages (JR Timestamp, JR Clock)</li>
+                    <li><strong>Type 0x1</strong> &mdash; System Common and System Real Time (1 word)</li>
+                    <li><strong>Type 0x2</strong> &mdash; MIDI 1.0 Channel Voice (1 word, legacy compatibility)</li>
+                    <li><strong>Type 0x3</strong> &mdash; Data messages / SysEx 7-bit (2 words)</li>
+                    <li><strong>Type 0x4</strong> &mdash; MIDI 2.0 Channel Voice (2 words, the new hotness)</li>
+                    <li><strong>Type 0x5</strong> &mdash; Data messages / SysEx 8-bit (2 words)</li>
+                </ul>
+
+                <p>With MIDI2Kit, you don't need to manually parse these bit patterns. The <code>UMPParser</code> and <code>UMPBuilder</code> types handle encoding and decoding for you.</p>
+
+                <h3>MIDI-CI: The Intelligence Layer</h3>
+
+                <p>MIDI-CI (Capability Inquiry) is the protocol layer that sits on top of UMP transport. It enables devices to discover each other, negotiate capabilities, exchange properties, and configure profiles. MIDI-CI messages are transported as SysEx within UMP packets.</p>
+
+                <p>MIDI-CI defines three major feature areas:</p>
+
+                <ol>
+                    <li><strong>Discovery</strong> &mdash; Devices announce their presence and capabilities (manufacturer, model, supported features)</li>
+                    <li><strong>Property Exchange (PE)</strong> &mdash; A JSON-based request/response protocol for reading and writing device parameters</li>
+                    <li><strong>Profile Configuration</strong> &mdash; Standardized behavior profiles (e.g., Piano Profile, Drawbar Organ Profile)</li>
+                </ol>
+
+                <h2>Setting Up Your Project</h2>
+
+                <p>MIDI2Kit integrates via Swift Package Manager. Add it to your <code>Package.swift</code>:</p>
+
+<pre><code class="language-swift">// Package.swift
+import PackageDescription
+
+let package = Package(
+    name: "MyMIDIApp",
+    platforms: [.macOS(.v14), .iOS(.v17)],
+    dependencies: [
+        .package(
+            url: "https://github.com/midi2kit/MIDI2Kit-SDK.git",
+            from: "1.0.0"
+        )
+    ],
+    targets: [
+        .executableTarget(
+            name: "MyMIDIApp",
+            dependencies: [
+                .product(name: "MIDI2Kit", package: "MIDI2Kit-SDK")
+            ]
+        )
+    ]
+)</code></pre>
+
+                <p>Or in Xcode: <strong>File &rarr; Add Package Dependencies</strong>, paste <code>https://github.com/midi2kit/MIDI2Kit-SDK.git</code>, and select the <code>MIDI2Kit</code> product.</p>
+
+                <p>MIDI2Kit has <strong>zero external dependencies</strong> &mdash; it only relies on Apple system frameworks (CoreMIDI, Foundation). It supports iOS 17+, macOS 14+, tvOS 17+, watchOS 10+, and visionOS 1.0+.</p>
+
+                <blockquote><p>MIDI2Kit is also available as a pre-built XCFramework for zero build-time integration. See the <a href="https://github.com/midi2kit/MIDI2Kit-SDK" target="_blank" rel="noopener">GitHub repository</a> for details.</p></blockquote>
+
+                <h2>Sending and Receiving UMP Messages</h2>
+
+                <h3>Creating a MIDI2Kit Client</h3>
+
+                <p>The central type in MIDI2Kit is <code>MIDI2Client</code>, a Swift actor that manages your connection to the MIDI subsystem. Here's how to initialize and start it:</p>
+
+<pre><code class="language-swift">import MIDI2Kit
+
+// Create a client with your app's name
+let client = try MIDI2Client(name: "MyMIDIApp")
+
+// Start the client — this connects to CoreMIDI
+// and begins MIDI-CI Discovery automatically
+try await client.start()</code></pre>
+
+                <h3>Listening for UMP Events</h3>
+
+                <p>MIDI2Kit delivers all events through an <code>AsyncSequence</code>-based event stream. This integrates naturally with Swift Concurrency:</p>
+
+<pre><code class="language-swift">// Create an event stream
+let eventStream = await client.makeEventStream()
+
+// Process events in a structured concurrency context
+Task {
+    for await event in eventStream {
+        switch event {
+        case .midi2ChannelVoice(let msg):
+            switch msg.status {
+            case .noteOn:
+                print("Note On: \(msg.note) velocity: \(msg.velocity32)")
+            case .noteOff:
+                print("Note Off: \(msg.note)")
+            case .controlChange:
+                print("CC \(msg.index): \(msg.value32)")
+            default:
+                break
+            }
+
+        case .deviceDiscovered(let device):
+            print("New device: \(device.displayName)")
+
+        case .deviceDisappeared(let muid):
+            print("Device left: \(muid)")
+
+        default:
+            break
+        }
+    }
+}</code></pre>
+
+                <h3>Sending MIDI 2.0 Messages</h3>
+
+                <p>Use <code>UMPBuilder</code> to construct messages and send them to a destination:</p>
+
+<pre><code class="language-swift">// Build a MIDI 2.0 Note On message with high-resolution velocity
+let noteOn = UMPBuilder.midi2NoteOn(
+    group: 0,
+    channel: 0,
+    note: 60,           // Middle C
+    velocity: .midi2(0xC000_0000),  // ~75% in 32-bit resolution
+    attributeType: .none
+)
+
+// Send to a specific destination
+try await client.send(noteOn, to: destinationID)
+
+// Build a per-note pitch bend (a MIDI 2.0 exclusive feature)
+let perNoteBend = UMPBuilder.midi2PerNotePitchBend(
+    group: 0,
+    channel: 0,
+    note: 60,
+    value: 0x6000_0000  // Slight upward bend
+)
+
+try await client.send(perNoteBend, to: destinationID)</code></pre>
+
+                <h3>MIDI 1.0 and 2.0 Conversion</h3>
+
+                <p>MIDI2Kit provides bidirectional conversion between MIDI 1.0 and MIDI 2.0 message formats. This is essential when communicating with devices that only support MIDI 1.0:</p>
+
+<pre><code class="language-swift">// Convert a MIDI 1.0 message to MIDI 2.0
+let midi1NoteOn = UMPBuilder.midi1NoteOn(
+    group: 0, channel: 0, note: 60, velocity: 100
+)
+let midi2Equivalent = UMPConverter.toMIDI2(midi1NoteOn)
+
+// Convert a MIDI 2.0 message back to MIDI 1.0
+let downscaled = UMPConverter.toMIDI1(midi2Equivalent)
+
+// Velocity is scaled: MIDI 2.0 32-bit → MIDI 1.0 7-bit
+// with proper rounding to minimize precision loss</code></pre>
+
+                <h2>Device Discovery with MIDI-CI</h2>
+
+                <p>One of the most powerful features of MIDI 2.0 is automatic device discovery. With MIDI-CI Discovery, your app can find all MIDI 2.0 capable devices, learn their capabilities, and decide how to interact with them &mdash; all without user intervention.</p>
+
+                <h3>How Discovery Works</h3>
+
+                <p>When you call <code>client.start()</code>, MIDI2Kit automatically begins the MIDI-CI Discovery process:</p>
+
+                <ol>
+                    <li>A <strong>Discovery</strong> message is broadcast to all connected MIDI ports</li>
+                    <li>MIDI 2.0 capable devices respond with their <strong>MUID</strong> (unique identifier), manufacturer info, and supported features</li>
+                    <li>MIDI2Kit assigns each device a <code>DiscoveredDevice</code> object and delivers it through the event stream</li>
+                    <li>If a device disconnects, an <code>InvalidateMUID</code> message is sent and MIDI2Kit emits a <code>deviceDisappeared</code> event</li>
+                </ol>
+
+<pre><code class="language-swift">// Discover devices and inspect their capabilities
+for await event in await client.makeEventStream() {
+    if case .deviceDiscovered(let device) = event {
+        print("Device: \(device.displayName)")
+        print("  Manufacturer: \(device.manufacturer)")
+        print("  Model: \(device.model)")
+        print("  MUID: \(device.muid)")
+        print("  Supports PE: \(device.supportsPropertyExchange)")
+        print("  Supports Profiles: \(device.supportsProfileConfiguration)")
+
+        // Get all currently discovered devices at any time
+        let allDevices = await client.discoveredDevices
+        print("Total devices online: \(allDevices.count)")
+    }
+}</code></pre>
+
+                <h3>Filtering and Managing Devices</h3>
+
+                <p>In a real application, you'll want to filter devices by capability and maintain a device list:</p>
+
+<pre><code class="language-swift">actor DeviceManager {
+    private var devices: [MUID: DiscoveredDevice] = [:]
+
+    func handle(_ event: MIDI2Event) {
+        switch event {
+        case .deviceDiscovered(let device):
+            devices[device.muid] = device
+
+        case .deviceDisappeared(let muid):
+            devices.removeValue(forKey: muid)
+
+        default:
+            break
+        }
+    }
+
+    /// Returns only devices that support Property Exchange
+    var peCapableDevices: [DiscoveredDevice] {
+        devices.values.filter { $0.supportsPropertyExchange }
+    }
+}</code></pre>
+
+                <h2>Property Exchange Basics</h2>
+
+                <p>Property Exchange (PE) is MIDI-CI's request/response protocol for reading and writing device parameters. Think of it as a RESTful API for MIDI devices &mdash; you can GET and SET resources using JSON-like payloads, all transported over SysEx within UMP.</p>
+
+                <h3>Reading Device Properties</h3>
+
+                <p>The most common PE operation is reading the <code>DeviceInfo</code> resource, which every PE-capable device must support:</p>
+
+<pre><code class="language-swift">// Get basic device information
+let deviceInfo = try await client.getDeviceInfo(from: device.muid)
+
+print("Manufacturer: \(deviceInfo.manufacturerName ?? "Unknown")")
+print("Product: \(deviceInfo.productName ?? "Unknown")")
+print("Firmware: \(deviceInfo.firmwareVersion ?? "Unknown")")
+print("Serial: \(deviceInfo.serialNumber ?? "N/A")")</code></pre>
+
+                <h3>Browsing Resource Lists</h3>
+
+                <p>Devices can expose a list of available resources that you can query and modify:</p>
+
+<pre><code class="language-swift">// Get the list of available resources on a device
+let resources = try await client.getResourceList(from: device.muid)
+
+for resource in resources {
+    print("Resource: \(resource.resource)")
+    print("  Can GET: \(resource.canGet)")
+    print("  Can SET: \(resource.canSet)")
+    print("  Can Subscribe: \(resource.canSubscribe)")
+}
+
+// Read a specific resource
+let channelList = try await client.getProperty(
+    resource: "ChannelList",
+    from: device.muid
+)
+
+// Set a property value
+try await client.setProperty(
+    resource: "ProgramName",
+    value: ["name": "My Custom Patch"],
+    on: device.muid
+)</code></pre>
+
+                <h3>Subscribing to Property Changes</h3>
+
+                <p>PE supports subscriptions, allowing your app to receive real-time updates when a device property changes:</p>
+
+<pre><code class="language-swift">// Subscribe to changes on a resource
+let subscription = try await client.subscribe(
+    to: "CurrentProgram",
+    on: device.muid
+)
+
+// Receive updates as an AsyncSequence
+Task {
+    for await update in subscription.updates {
+        print("Program changed: \(update.value)")
+    }
+}
+
+// Unsubscribe when done
+try await subscription.cancel()</code></pre>
+
+                <h2>Handling Connections: USB, Bluetooth, and Network</h2>
+
+                <p>MIDI2Kit works with all transport types that CoreMIDI supports. The beauty of the UMP architecture is that your code doesn't need to change based on how a device is connected.</p>
+
+                <h3>USB MIDI</h3>
+
+                <p>USB MIDI devices are the most straightforward &mdash; they appear automatically through CoreMIDI. MIDI2Kit discovers them as soon as they're plugged in and emits <code>deviceDiscovered</code> events if they support MIDI-CI.</p>
+
+                <h3>Bluetooth MIDI</h3>
+
+                <p>For Bluetooth MIDI on iOS, you need to present a connection UI. MIDI2Kit provides a helper for this:</p>
+
+<pre><code class="language-swift">// Present the system Bluetooth MIDI picker (iOS)
+#if os(iOS)
+import CoreAudioKit
+
+let picker = CABTMIDICentralViewController()
+present(picker, animated: true)
+
+// Once connected, the device appears in MIDI2Kit's
+// event stream automatically — no extra setup needed
+#endif</code></pre>
+
+                <h3>Network MIDI</h3>
+
+                <p>macOS supports Network MIDI sessions through CoreMIDI. MIDI2Kit treats network MIDI endpoints the same as any other &mdash; once established, discovery and property exchange work identically:</p>
+
+<pre><code class="language-swift">// Network MIDI sessions are managed through
+// Audio MIDI Setup on macOS.
+// Once a session is established, endpoints appear
+// to MIDI2Kit like any other MIDI device.
+
+// You can identify the transport type if needed:
+let endpoint = await client.endpoints.first {
+    $0.displayName == "Network Session 1"
+}
+
+if let endpoint {
+    print("Transport: \(endpoint.transportType)")
+    // .usb, .bluetooth, .network, etc.
+}</code></pre>
+
+                <h2>Common Patterns and Best Practices</h2>
+
+                <h3>1. Use Structured Concurrency</h3>
+
+                <p>MIDI2Kit is built on Swift actors and <code>AsyncSequence</code>. Embrace structured concurrency to avoid common pitfalls:</p>
+
+<pre><code class="language-swift">// Good: Use TaskGroup for parallel operations
+try await withThrowingTaskGroup(of: Void.self) { group in
+    let devices = await client.discoveredDevices
+
+    for device in devices where device.supportsPropertyExchange {
+        group.addTask {
+            let info = try await client.getDeviceInfo(from: device.muid)
+            print("\(device.displayName): \(info.productName ?? "Unknown")")
+        }
+    }
+}
+
+// Good: Cancel event processing cleanly
+let task = Task {
+    for await event in await client.makeEventStream() {
+        handleEvent(event)
+    }
+}
+
+// Later, when shutting down:
+task.cancel()
+try await client.stop()</code></pre>
+
+                <h3>2. Handle Device Disconnection Gracefully</h3>
+
+                <p>Devices can disconnect at any time. Always handle the <code>deviceDisappeared</code> event and clean up:</p>
+
+<pre><code class="language-swift">for await event in await client.makeEventStream() {
+    switch event {
+    case .deviceDiscovered(let device):
+        await deviceManager.add(device)
+        // Start PE queries only after discovery
+        if device.supportsPropertyExchange {
+            Task { await fetchDeviceDetails(device) }
+        }
+
+    case .deviceDisappeared(let muid):
+        await deviceManager.remove(muid)
+        // Cancel any pending PE transactions for this device
+        await cancelPendingRequests(for: muid)
+
+    default:
+        break
+    }
+}</code></pre>
+
+                <h3>3. Respect Rate Limits</h3>
+
+                <p>MIDI-CI transactions are SysEx-based and can be bandwidth-intensive. Avoid flooding devices with rapid-fire PE requests:</p>
+
+<pre><code class="language-swift">// Bad: Rapid-fire requests
+for resource in resources {
+    let value = try await client.getProperty(
+        resource: resource.name, from: muid
+    )
+}
+
+// Better: Rate-limit with a small delay
+for resource in resources {
+    let value = try await client.getProperty(
+        resource: resource.name, from: muid
+    )
+    try await Task.sleep(for: .milliseconds(50))
+}</code></pre>
+
+                <h3>4. Build a Responder for Testing</h3>
+
+                <p>MIDI2Kit's <code>MIDI2ResponderClient</code> lets you create a virtual MIDI 2.0 device &mdash; perfect for testing without hardware:</p>
+
+<pre><code class="language-swift">// Create a virtual MIDI 2.0 responder
+let responder = try MIDI2ResponderClient(
+    name: "Virtual Synth",
+    manufacturer: "MyCompany",
+    model: "TestSynth"
+)
+
+// Add a typed resource
+await responder.addResource("DeviceStatus") {
+    ComputedResource(getTyped: { context in
+        DeviceStatus(
+            battery: 85,
+            firmware: "2.1.0",
+            activeVoices: 12
+        )
+    })
+}
+
+// Add a settable resource
+await responder.addResource("ProgramName") {
+    StoredResource(
+        initialValue: ProgramInfo(name: "Init", bank: 0, number: 0),
+        onSet: { newValue, context in
+            print("Program changed to: \(newValue.name)")
+            return .ok
+        }
+    )
+}
+
+// Start — the responder is now visible to other MIDI 2.0 apps
+try await responder.start()</code></pre>
+
+                <h3>5. Use the Type System</h3>
+
+                <p>MIDI2Kit uses strongly typed values wherever possible. Prefer typed APIs over raw bytes:</p>
+
+<pre><code class="language-swift">// Prefer typed velocity over raw integers
+let velocity = Velocity.midi2(0xB000_0000)  // ~69%
+let velocity7 = Velocity.midi1(100)         // 7-bit
+let velocityMax = Velocity.max              // Full velocity
+
+// Use note numbers with octave info
+let note = NoteNumber(60)  // Middle C
+print(note.name)           // "C4"
+print(note.frequency)      // 261.63 Hz
+
+// Build messages with type safety
+let msg = UMPBuilder.midi2NoteOn(
+    group: 0,
+    channel: 0,
+    note: note,
+    velocity: velocity,
+    attributeType: .none
+)</code></pre>
+
+                <h2>Where to Go from Here</h2>
+
+                <p>This guide covered the fundamentals of MIDI 2.0 development with Swift and MIDI2Kit. Here are some next steps:</p>
+
+                <ul>
+                    <li>Read the <a href="/api/documentation/midi2kit/" target="_blank" rel="noopener">API Reference</a> for complete documentation</li>
+                    <li>Explore the <a href="/guides/">Guides</a> for deep dives into Property Exchange, Responders, and UMP parsing</li>
+                    <li>Check out the <a href="https://github.com/midi2kit/MIDI2Kit-SDK/tree/main/Examples" target="_blank" rel="noopener">example projects</a> on GitHub</li>
+                    <li>Read the <a href="https://www.midi.org/specifications/midi-2-0-specifications" target="_blank" rel="noopener">official MIDI 2.0 specification</a> from the MIDI Association</li>
+                </ul>
+
+                <p>MIDI 2.0 is a generational upgrade to how musical devices communicate. With MIDI2Kit, you can start building for it today in pure Swift &mdash; no C bridges, no callback pyramids, no thread-safety concerns.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Ready to build with MIDI 2.0?</h3>
+                    <p>MIDI2Kit is open source, MIT licensed, and ready for production.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/#quickstart" class="btn btn-secondary">Getting Started Guide</a>
+                    </div>
+                </div>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="/blog/">&larr; All Posts</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>
