@@ -1,0 +1,62 @@
+name: Validate HTML
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check HTML files exist
+        run: |
+          echo "Checking HTML files..."
+          for f in index.html blog/index.html blog/2026-03-08-introducing-midi2kit.html; do
+            if [ ! -f "$f" ]; then
+              echo "ERROR: Missing $f"
+              exit 1
+            fi
+            echo "OK: $f"
+          done
+
+      - name: Check for broken internal links
+        run: |
+          echo "Checking internal links..."
+          errors=0
+          for html in $(find . -name '*.html' -not -path './.git/*' -not -path './api/*'); do
+            # Extract href values that are local paths (not http/https/mailto/#)
+            links=$(grep -oP 'href="(?!https?://|mailto:|#|javascript:)[^"]*"' "$html" 2>/dev/null | sed 's/href="//;s/"//' || true)
+            dir=$(dirname "$html")
+            for link in $links; do
+              # Remove query string and hash
+              clean=$(echo "$link" | sed 's/[?#].*//')
+              # Skip empty
+              [ -z "$clean" ] && continue
+              # Resolve path
+              if [[ "$clean" == /* ]]; then
+                target=".${clean}"
+              else
+                target="${dir}/${clean}"
+              fi
+              # For directory paths, check index.html
+              if [[ "$target" == */ ]]; then
+                target="${target}index.html"
+              fi
+              if [ ! -f "$target" ] && [ ! -d "$target" ]; then
+                echo "WARN: Broken link in $html -> $link (resolved: $target)"
+              fi
+            done
+          done
+          echo "Link check complete."
+
+      - name: Verify CNAME
+        run: |
+          if [ -f CNAME ]; then
+            echo "CNAME: $(cat CNAME)"
+          else
+            echo "WARNING: No CNAME file found"
+          fi
