@@ -21,6 +21,16 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://midi2kit.dev/blog/2026-03-08-midi2-ecosystem-2026.html</loc>
+    <lastmod>2026-03-08</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization.html</loc>
+    <lastmod>2026-03-29</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://midi2kit.dev/guides/</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.7</priority>
