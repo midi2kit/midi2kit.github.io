@@ -9,9 +9,9 @@
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-    <meta name="description" content="MIDI2Kit が macOS 15 (Sequoia) の新しい CoreMIDI API に完全対応。MIDIUMPEndpointManager、MIDICIDeviceManager、MIDI-CI v1.2、Network MIDI 2.0 の統合について解説します。">
+    <meta name="description" content="MIDI2Kit が macOS 15 SDK の CoreMIDI クラス (MIDIUMPEndpointManager, MIDICIDeviceManager) との統合を完了。MIDI-CI v1.2 準拠、Network MIDI 2.0 対応、macOS 26.4 検証結果を解説します。">
     <meta property="og:title" content="MIDI2Kit が macOS 15+ API に対応: UMP エンドポイント、MIDI-CI v1.2、Network MIDI 2.0">
-    <meta property="og:description" content="MIDI2Kit が macOS 15 (Sequoia) の新しい CoreMIDI API に完全対応。MIDIUMPEndpointManager、MIDICIDeviceManager、MIDI-CI v1.2、Network MIDI 2.0 の統合について解説します。">
+    <meta property="og:description" content="MIDI2Kit が macOS 15 SDK の CoreMIDI クラス (MIDIUMPEndpointManager, MIDICIDeviceManager) との統合を完了。MIDI-CI v1.2 準拠、Network MIDI 2.0 対応、macOS 26.4 検証結果を解説します。">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://midi2kit.dev/ja/blog/2026-03-29-macos15-midi2-modernization-ja.html">
     <meta property="article:published_time" content="2026-03-29">
@@ -30,7 +30,7 @@
       "author": { "@type": "Person", "name": "hakaru" },
       "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
       "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/ja/blog/2026-03-29-macos15-midi2-modernization-ja.html" },
-      "description": "MIDI2Kit が macOS 15 (Sequoia) の新しい CoreMIDI API に完全対応。MIDIUMPEndpointManager、MIDICIDeviceManager、MIDI-CI v1.2、Network MIDI 2.0 の統合について解説します。",
+      "description": "MIDI2Kit が macOS 15 SDK の CoreMIDI クラス (MIDIUMPEndpointManager, MIDICIDeviceManager) との統合を完了。MIDI-CI v1.2 準拠、Network MIDI 2.0 対応、macOS 26.4 検証結果を解説します。",
       "inLanguage": "ja"
     }
     </script>
@@ -443,7 +443,7 @@
                 <span>8分</span>
             </div>
             <h1>MIDI2Kit が macOS 15+ API に対応: UMP エンドポイント、MIDI-CI v1.2、Network MIDI 2.0</h1>
-            <p class="post-subtitle">macOS 15 (Sequoia) で導入された新しい CoreMIDI API との統合が完了しました。macOS 26.4 (Tahoe) での検証結果も含め、Apple の最新 MIDI 2.0 サブシステムとの橋渡しを実現します。</p>
+            <p class="post-subtitle">macOS 15 (Sequoia) の SDK で確認できる CoreMIDI クラスとの統合が完了しました。macOS 26.4 (Tahoe) での検証結果も含め、Apple の MIDI 2.0 サブシステムとの橋渡しを実現します。</p>
         </div>
     </section>
 
@@ -454,22 +454,22 @@
 
                 <h2>はじめに</h2>
 
-                <p>MIDI2Kit は、macOS 15 (Sequoia) で新たに公開された CoreMIDI API への統合を完了しました。<strong>MIDIUMPEndpointManager</strong> によるネイティブな UMP エンドポイント検出、<strong>MIDICIDeviceManager</strong> によるシステム管理の MIDI-CI セッション連携、そして MIDI-CI v1.2 の仕様準拠 &mdash; これらすべてが今回のアップデートで実現しています。</p>
+                <p>MIDI2Kit は、macOS 15 (Sequoia) の SDK ヘッダーで確認できる CoreMIDI クラスとの統合を完了しました。<strong>MIDIUMPEndpointManager</strong> によるネイティブな UMP エンドポイント検出、<strong>MIDICIDeviceManager</strong> によるシステム管理の MIDI-CI セッション連携、そして MIDI-CI v1.2 の仕様準拠 &mdash; これらすべてが今回のアップデートで実現しています。なお、これらのクラスは Apple のリリースノートでは特に言及されていませんが、SDK に含まれ実行時に利用可能です。</p>
 
-                <p>さらに、macOS 26.4 (Tahoe) ベータ環境での実機検証も行いました。新しい <strong>Network MIDI 2.0 (UDP)</strong> の受信パス対応と、<code>MIDIUMPMutableEndpoint</code> の改善を確認しています。検証で得られた知見についても本記事で詳しく解説します。</p>
+                <p>macOS 26.4 (Tahoe) の公式リリースノートで確認できる CoreMIDI の変更は <strong>Network MIDI 2.0 (UDP)</strong> のサポート追加のみです。加えて、実機検証により <code>MIDIUMPMutableEndpoint</code> の改善も確認しています。</p>
 
                 <blockquote><p>今回の変更はすべて <code>@available(macOS 15, *)</code> ガード付きで実装されています。macOS 14 以前の環境でも、デフォルトの動作は一切変わりません。</p></blockquote>
 
-                <h2>macOS 15+ CoreMIDI の新機能</h2>
+                <h2>本リリースで使用する CoreMIDI API</h2>
 
-                <p>macOS 15 (Sequoia) は、CoreMIDI に対して MIDI 2.0 時代に向けた重要な API 拡張をもたらしました。これらは単なる便利メソッドの追加ではなく、MIDI 2.0 エコシステムとの深い統合を可能にする基盤となるものです。</p>
+                <p>MIDI2Kit が統合した CoreMIDI API と、それぞれの出自を整理します。Apple のリリースノートで言及されていない API も含まれますが、SDK ヘッダーに存在し実行時に利用可能です。</p>
 
                 <ul>
-                    <li><strong>MIDIUMPEndpointManager</strong> &mdash; UMP エンドポイントをシステムレベルで管理するクラス。接続されたデバイスが UMP をネイティブサポートしているかどうかを OS が直接把握し、アプリに通知します。</li>
-                    <li><strong>MIDICIDeviceManager</strong> &mdash; システムが管理する MIDI-CI セッションの情報を提供します。Logic Pro や GarageBand などの Apple 製アプリが内部的に使用している CI セッションを、サードパーティアプリからも参照できます。</li>
-                    <li><strong>MIDISendEventList</strong> &mdash; MIDI 2.0 UMP パケットをネイティブに送信する新しい API。従来の <code>MIDISend</code> に代わる、UMP ファーストな送信インターフェースです。</li>
-                    <li><strong>Network MIDI 2.0 (UDP)</strong> &mdash; macOS 26.4 で追加。RTP-MIDI の後継として、UDP 上で UMP パケットを直接送受信します。</li>
-                    <li><strong>MIDIUMPMutableEndpoint</strong> &mdash; macOS 26.4 で改善。仮想 UMP エンドポイントの作成と Function Block 登録がより柔軟になりました。</li>
+                    <li><strong>MIDIUMPEndpointManager</strong> (macOS 15.0+) &mdash; UMP エンドポイントをシステムレベルで管理するクラス。macOS 15 SDK ヘッダーで確認。リリースノートでの言及なし。</li>
+                    <li><strong>MIDICIDeviceManager</strong> (macOS 15.0+) &mdash; システムが管理する MIDI-CI セッションの情報を提供。macOS 15 SDK ヘッダーで確認。リリースノートでの言及なし。</li>
+                    <li><strong>MIDISendEventList</strong> (macOS 11.0+) &mdash; MIDI 2.0 UMP パケットのネイティブ送信 API。<strong>macOS 15 の新 API ではなく、macOS Big Sur から存在</strong>。MIDI2Kit のスマート SysEx ルーティングの基盤として活用。</li>
+                    <li><strong>Network MIDI 2.0 (UDP)</strong> (macOS 26.4) &mdash; macOS 26.4 の公式リリースノートで確認できる唯一の CoreMIDI 関連変更。UDP 上で UMP パケットを直接送受信。</li>
+                    <li><strong>MIDIUMPMutableEndpoint</strong> (macOS 15.0+) &mdash; macOS 26.4 での実機テストにより、<code>registerFunctionBlocks</code> エラーの解消を確認（ただしパラメータサポートは限定的）。</li>
                 </ul>
 
                 <h2>MIDI2Kit の新機能</h2>

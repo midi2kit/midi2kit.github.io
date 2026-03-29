@@ -9,9 +9,9 @@
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-    <meta name="description" content="MIDI2Kit now integrates with CoreMIDI APIs introduced in macOS 15 Sequoia and verified on macOS 26.4 Tahoe — UMP endpoint discovery, MIDI-CI v1.2 compliance, smart SysEx sending, and Profile Configuration support.">
+    <meta name="description" content="MIDI2Kit now integrates with CoreMIDI classes available in the macOS 15 SDK (MIDIUMPEndpointManager, MIDICIDeviceManager) and verified on macOS 26.4 Tahoe — UMP endpoint discovery, MIDI-CI v1.2 compliance, smart SysEx sending, and Profile Configuration support.">
     <meta property="og:title" content="MIDI2Kit Adds macOS 15+ API Support: UMP Endpoints, MIDI-CI v1.2, and Network MIDI 2.0">
-    <meta property="og:description" content="MIDI2Kit now integrates with CoreMIDI APIs introduced in macOS 15 Sequoia and verified on macOS 26.4 Tahoe — UMP endpoint discovery, MIDI-CI v1.2 compliance, smart SysEx sending, and Profile Configuration support.">
+    <meta property="og:description" content="MIDI2Kit now integrates with CoreMIDI classes available in the macOS 15 SDK (MIDIUMPEndpointManager, MIDICIDeviceManager) and verified on macOS 26.4 Tahoe — UMP endpoint discovery, MIDI-CI v1.2 compliance, smart SysEx sending, and Profile Configuration support.">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization.html">
     <meta property="article:published_time" content="2026-03-29">
@@ -29,7 +29,7 @@
       "author": { "@type": "Person", "name": "hakaru" },
       "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
       "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization.html" },
-      "description": "MIDI2Kit now integrates with CoreMIDI APIs introduced in macOS 15 Sequoia and verified on macOS 26.4 Tahoe — UMP endpoint discovery, MIDI-CI v1.2 compliance, smart SysEx sending, and Profile Configuration support.",
+      "description": "MIDI2Kit now integrates with CoreMIDI classes available in the macOS 15 SDK (MIDIUMPEndpointManager, MIDICIDeviceManager) and verified on macOS 26.4 Tahoe — UMP endpoint discovery, MIDI-CI v1.2 compliance, smart SysEx sending, and Profile Configuration support.",
       "inLanguage": "en"
     }
     </script>
@@ -442,7 +442,7 @@
                 <span>8 min read</span>
             </div>
             <h1>MIDI2Kit Adds macOS 15+ API Support: UMP Endpoints, MIDI-CI v1.2, and Network MIDI 2.0</h1>
-            <p class="post-subtitle">MIDI2Kit now integrates with the new CoreMIDI APIs introduced in macOS 15 Sequoia and verified on macOS 26.4 Tahoe &mdash; bridging Apple&rsquo;s modern MIDI 2.0 subsystem with MIDI2Kit&rsquo;s battle-tested Property Exchange implementation.</p>
+            <p class="post-subtitle">MIDI2Kit now integrates with CoreMIDI classes available in the macOS 15 SDK and verified on macOS 26.4 Tahoe &mdash; bridging Apple&rsquo;s MIDI 2.0 subsystem with MIDI2Kit&rsquo;s battle-tested Property Exchange implementation.</p>
         </div>
     </section>
 
@@ -453,22 +453,24 @@
 
                 <h2>Why This Release Matters</h2>
 
-                <p>When Apple shipped macOS 15 Sequoia, CoreMIDI gained a set of new high-level APIs: <code>MIDIUMPEndpointManager</code> for native UMP endpoint discovery, <code>MIDICIDeviceManager</code> for system-managed MIDI-CI sessions, and <code>MIDISendEventList</code> for MIDI 2.0 native packet delivery. These APIs represent Apple&rsquo;s vision for how MIDI 2.0 applications should be built &mdash; but until now, MIDI2Kit operated alongside them rather than with them.</p>
+                <p>macOS 15 Sequoia introduced new CoreMIDI classes discoverable in the SDK headers: <code>MIDIUMPEndpointManager</code> for querying UMP endpoint metadata and <code>MIDICIDeviceManager</code> for observing system-managed MIDI-CI sessions. These classes were not highlighted in Apple&rsquo;s release notes, but they are present in the SDK and usable at runtime. Note that <code>MIDISendEventList</code> &mdash; the MIDI 2.0 native send path &mdash; has been available since macOS 11 Big Sur; it is not new to macOS 15.</p>
 
-                <p>This release changes that. MIDI2Kit now integrates directly with the macOS 15+ CoreMIDI layer, using system information to make smarter decisions: which endpoints are UMP-native, which devices are already managed by the system, and which MIDI-CI participants are Apple&rsquo;s own built-in clients. The result is fewer false positives, better routing, and a foundation ready for the APIs Apple is building toward in macOS 26.4 Tahoe.</p>
+                <p>Meanwhile, macOS 26.4 Tahoe added <strong>Network MIDI 2.0 (UDP)</strong> support at the system level &mdash; the only CoreMIDI-related change confirmed in the official release notes for that version.</p>
+
+                <p>This MIDI2Kit release integrates with these APIs to make smarter decisions: which endpoints are UMP-native, which devices are already managed by the system, and which MIDI-CI participants are Apple&rsquo;s own built-in clients. The result is fewer false positives, better routing, and a foundation ready for Apple&rsquo;s evolving MIDI 2.0 subsystem.</p>
 
                 <blockquote><p>CoreMIDI gives you the wire and a growing set of discovery primitives. MIDI2Kit gives you the full MIDI-CI protocol stack &mdash; Discovery, Property Exchange, Profile Configuration &mdash; that sits above it.</p></blockquote>
 
-                <h2>What&rsquo;s New in macOS 15+ CoreMIDI</h2>
+                <h2>CoreMIDI APIs Used in This Release</h2>
 
-                <p>Before diving into MIDI2Kit&rsquo;s changes, it helps to understand what Apple added at the OS level.</p>
+                <p>Before diving into MIDI2Kit&rsquo;s changes, here is what MIDI2Kit now uses from CoreMIDI and where each API comes from. Note: Apple did not prominently feature most of these in release notes &mdash; they are discoverable through SDK headers.</p>
 
                 <ul>
-                    <li><strong>MIDIUMPEndpointManager</strong> &mdash; A singleton that enumerates all UMP endpoints visible to the system. Each endpoint exposes function block information, MIDI version support, and a manufacturer-assigned name, discoverable without sending any MIDI-CI messages.</li>
-                    <li><strong>MIDICIDeviceManager</strong> &mdash; Tracks MIDI-CI-capable devices that the system itself has discovered. This includes Apple&rsquo;s own built-in MIDI-CI clients, which previously appeared as mystery MUIDs in any app doing its own Discovery.</li>
-                    <li><strong>MIDISendEventList</strong> &mdash; The native MIDI 2.0 send path. Rather than packaging UMP packets back into legacy SysEx for delivery, apps can send <code>MIDIEventList</code> structures directly &mdash; eliminating one layer of translation for UMP-native destinations.</li>
-                    <li><strong>Network MIDI 2.0 (UDP)</strong> &mdash; Arriving in macOS 26.4 Tahoe, this extends the existing Network MIDI session model to carry UMP packets over UDP. The receive path is operational; the send migration is in progress.</li>
-                    <li><strong>MIDIUMPMutableEndpoint improvements</strong> &mdash; macOS 26.4 refines the virtual UMP endpoint API, fixing the <code>registerFunctionBlocks</code> error that blocked virtual device hosting on earlier macOS 15 builds.</li>
+                    <li><strong>MIDIUMPEndpointManager</strong> (macOS 15.0+) &mdash; A singleton that enumerates all UMP endpoints visible to the system. Each endpoint exposes function block information, MIDI version support, and a manufacturer-assigned name. Found in the macOS 15 SDK headers; not highlighted in official release notes.</li>
+                    <li><strong>MIDICIDeviceManager</strong> (macOS 15.0+) &mdash; Tracks MIDI-CI-capable devices that the system itself has discovered. This includes Apple&rsquo;s own built-in MIDI-CI clients. Found in the macOS 15 SDK headers; not highlighted in official release notes.</li>
+                    <li><strong>MIDISendEventList</strong> (macOS 11.0+) &mdash; The MIDI 2.0 send path, available since macOS Big Sur. Not new to macOS 15, but central to MIDI2Kit&rsquo;s smart SysEx routing for UMP-native destinations.</li>
+                    <li><strong>Network MIDI 2.0 (UDP)</strong> (macOS 26.4) &mdash; The only CoreMIDI-related change confirmed in Apple&rsquo;s official macOS 26.4 release notes. Extends the existing Network MIDI session model to carry UMP packets over UDP.</li>
+                    <li><strong>MIDIUMPMutableEndpoint</strong> (macOS 15.0+) &mdash; Our testing on macOS 26.4 shows the <code>registerFunctionBlocks</code> error (present on macOS 15) has been resolved, though with limited parameter support.</li>
                 </ul>
 
                 <h2>What MIDI2Kit Now Supports</h2>
@@ -483,7 +485,7 @@
 
                 <h3>2. Smart SysEx Sending (#38)</h3>
 
-                <p>MIDI-CI messages are SysEx, and sending SysEx to a UMP-native endpoint has historically required converting back to MIDI 1.0 byte streams. With macOS 15+, there is a better path: <code>MIDISendEventList</code> with a Data 64 (SysEx7) payload.</p>
+                <p>MIDI-CI messages are SysEx, and sending SysEx to a UMP-native endpoint has historically required converting back to MIDI 1.0 byte streams. With MIDI2Kit&rsquo;s new UMP endpoint detection (macOS 15+), the library can now route SysEx through <code>MIDISendEventList</code> (available since macOS 11) as Data 64 (SysEx7) packets for UMP-native destinations.</p>
 
                 <p>MIDI2Kit now exposes a <code>SysExSendStrategy</code> enum on <code>CoreMIDITransport</code>:</p>
 
