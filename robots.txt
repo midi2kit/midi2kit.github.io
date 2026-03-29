@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /ja/
+
+Sitemap: https://midi2kit.dev/sitemap.xml
