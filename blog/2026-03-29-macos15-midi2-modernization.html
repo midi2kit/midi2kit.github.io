@@ -557,15 +557,65 @@ let ackMsg = CIMessageBuilder.ciAck(
 
                 <p>All builders accept the <code>numChannels</code> field introduced in CI v1.2, which indicates how many channels a profile activation covers. The <code>MIDICIProfileID</code> struct captures all five bytes of a profile identifier in a type-safe wrapper.</p>
 
-                <h2>macOS 26.4 Tahoe: Investigation Results</h2>
+                <h2>macOS 26.4 Tahoe: Detailed Investigation Results</h2>
 
-                <p>MIDI2Kit&rsquo;s CI API development included hands-on investigation of the macOS 26.4 beta APIs. The findings are mixed but informative.</p>
+                <p>We ran the <code>UMPEndpointPoC</code> test harness (v3, Parameter Sweep) on macOS 26.4 (Build 25E246) without external MIDI devices connected. Here are the raw findings.</p>
 
-                <p><strong>registerFunctionBlocks is now functional.</strong> The error that prevented virtual UMP endpoint registration on earlier macOS 15 builds is resolved in macOS 26.4. Virtual endpoints with function block metadata can be registered and are visible to other applications. However, of the 16 parameter combinations tested in the UMP Endpoint PoC, only the Baseline configuration (single function block, MIDI 1.0 compatibility mode) produces a correctly visible endpoint. The remaining 15 combinations fail silently or produce malformed endpoint descriptors. This is likely an Apple beta regression &mdash; the Baseline path is sufficient for the current release.</p>
+                <h3>Test A: registerFunctionBlocks &mdash; 16-Pattern Sweep</h3>
 
-                <p><strong>Network MIDI 2.0 receive path works.</strong> UDP-based Network MIDI 2.0 sessions deliver UMP packets correctly on macOS 26.4. The send path is still being migrated; the current workaround routes outbound packets through the legacy Network MIDI session until the new send API stabilizes.</p>
+                <p>On macOS 15, <code>registerFunctionBlocks</code> threw <code>Foundation._GenericObjCError code=0</code> for all 16 parameter combinations. On macOS 26.4, the error is resolved: 0/16 register errors, 0/16 enable errors.</p>
 
-                <p><strong>MIDIDriverKit is not viable for Swift Package Manager packages.</strong> The DriverKit entitlement requirement means any package embedding a MIDIDriverKit extension cannot be distributed via SPM without a custom entitlement provisioning step. This is an Apple platform constraint, not a MIDI2Kit limitation &mdash; and it is out of scope for the library itself.</p>
+                <p>However, only <strong>1 of 16</strong> combinations produced a Function Block visible in <code>MIDIUMPEndpointManager</code>:</p>
+
+                <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:14px;">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--border-color); text-align:left;">
+                            <th style="padding:8px;">Parameter</th>
+                            <th style="padding:8px;">Working value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">direction</td><td style="padding:8px;"><code>.bidirectional</code></td></tr>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">maxSysEx8Streams</td><td style="padding:8px;"><code>0</code></td></tr>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">midi1Info</td><td style="padding:8px;"><code>.notMIDI1</code></td></tr>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">uiHint</td><td style="padding:8px;"><code>.unknown</code></td></tr>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">markAsStatic</td><td style="padding:8px;"><code>true</code></td></tr>
+                        <tr><td style="padding:8px;">Timing</td><td style="padding:8px;">register <strong>before</strong> enable</td></tr>
+                    </tbody>
+                </table>
+
+                <p>The 15 failing combinations each changed exactly one parameter from the Baseline. The failures are silent &mdash; no error is returned, but <code>functionBlocks.count</code> is 0 in <code>MIDIUMPEndpointManager</code>. Changing <em>any</em> of the following from the Baseline value causes the FB to disappear:</p>
+
+                <ul>
+                    <li><code>direction</code> to <code>.input</code> or <code>.output</code></li>
+                    <li><code>maxSysEx8Streams</code> to <code>1</code></li>
+                    <li><code>midi1Info</code> to <code>.unrestricted</code> or <code>.restrictBW</code></li>
+                    <li><code>uiHint</code> to <code>.receiver</code>, <code>.sender</code>, or <code>.sndRcv</code></li>
+                    <li><code>markAsStatic</code> to <code>false</code></li>
+                    <li>Registration timing to after <code>setEnabled(true)</code></li>
+                </ul>
+
+                <p>On macOS 15, all 16 showed direction=0 (Unknown) in EndpointManager. On macOS 26.4, Case #0 correctly shows direction=3 (bidirectional).</p>
+
+                <h3>Test B: MIDIInputPort UMP Reception</h3>
+
+                <p>An input port created with <code>MIDIInputPortCreateWithProtocol(._2_0)</code> connected to all sources. After 10 seconds of monitoring: <strong>0 UMP packets received, 0 Data 64 (SysEx7) packets</strong>. No external MIDI devices were connected, so we could not verify whether CoreMIDI still filters CI SysEx from the UMP path. This remains an open question.</p>
+
+                <h3>Test C: MIDIUMPEndpointManager Enumeration</h3>
+
+                <p>Only 1 UMP endpoint appeared: the PoC&rsquo;s own virtual endpoint. Without external devices, we could not verify whether KORG KeyStage (a MIDI 1.0 device) or other hardware appears in the UMP endpoint list.</p>
+
+                <h3>Network MIDI 2.0 (UDP)</h3>
+
+                <p>macOS 26.4&rsquo;s official release notes confirm Network MIDI 2.0 support. MIDI2Kit&rsquo;s receive path uses <code>MIDIInputPortCreateWithProtocol(._2_0)</code>, which should handle Network MIDI 2.0 UMP streams transparently. The <strong>send path</strong> currently uses <code>MIDISend</code> (legacy MIDI 1.0 API) for SysEx; the new <code>SysExSendStrategy.auto</code> option routes to <code>MIDISendEventList</code> for UMP-native destinations, but this has not yet been tested over a Network MIDI 2.0 session. No external Network MIDI 2.0 peers were available during testing.</p>
+
+                <h3>MIDIDriverKit</h3>
+
+                <p>Investigated as a potential alternative for virtual MIDI 2.0 devices. Conclusion: not viable for SPM packages. MIDIDriverKit requires C++, Xcode project targets, DriverKit entitlements (Apple approval needed), and SIP-enabled environments. The existing <code>MIDIDestinationCreateWithBlock</code> / <code>MIDIUMPMutableEndpoint</code> approach remains the correct path for MIDI2Kit.</p>
+
+                <h3>Overall Verdict: PARTIAL-GO</h3>
+
+                <p><code>MIDIUMPMutableEndpoint</code> is usable on macOS 26.4 with the Baseline configuration. Full FunctionBlock customization and Data 64 reception through the UMP path remain unverified. Production use of the legacy API continues to be recommended until external device testing confirms broader compatibility.</p>
 
                 <h2>Code Example: UMP-Aware SysEx Sending</h2>
 

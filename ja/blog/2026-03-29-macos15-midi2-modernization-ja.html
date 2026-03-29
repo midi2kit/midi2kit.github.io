@@ -587,25 +587,65 @@ try await transport.send(setOnBytes, to: destination)</code></pre>
 
                 <p>パーサー側も <code>CIMessageParser</code> に <code>parseProfileReply</code> と <code>parseSetProfile</code> が追加されました。</p>
 
-                <h2>macOS 26.4 (Tahoe) での検証結果</h2>
+                <h2>macOS 26.4 (Tahoe) 詳細検証結果</h2>
 
-                <p>macOS 26.4 ベータでの実機検証で得られた知見を共有します。これらはベータ段階の結果であり、正式リリースまでに変更される可能性があります。</p>
+                <p><code>UMPEndpointPoC</code> テストハーネス (v3, Parameter Sweep) を macOS 26.4 (Build 25E246) で実行しました。外部 MIDI デバイスは未接続の状態での結果です。</p>
 
-                <h3>registerFunctionBlocks: エラー解消</h3>
+                <h3>Test A: registerFunctionBlocks &mdash; 16パターンスイープ</h3>
 
-                <p>macOS 15 では、<code>MIDIUMPMutableEndpoint</code> に Function Block を登録しようとすると全件エラー (<code>OSStatus -10849</code>) が発生していました。macOS 26.4 ではこのエラーが解消され、Function Block の登録が正常に動作することを確認しました。</p>
+                <p>macOS 15 では <code>registerFunctionBlocks</code> が全 16 パターンで <code>Foundation._GenericObjCError code=0</code> を送出していました。macOS 26.4 ではこのエラーが解消: 登録エラー 0/16、有効化エラー 0/16。</p>
 
-                <p>ただし、<strong>動作する構成は Baseline のみ</strong>です。16 パターンのパラメータスイープ (グループ数 1/2/4、チャンネル割り当て MIDI 1.0/MIDI 2.0、Block Type 入力/出力/双方向、UMP バージョン 1.0/1.1) を試した結果、安定して認識されるのは最もシンプルな Baseline 構成 (グループ 1、MIDI 2.0 チャンネル、双方向、UMP 1.1) のみでした。他の構成では、登録は成功するものの Audio MIDI Setup での可視性に問題が残っています。</p>
+                <p>ただし、<code>MIDIUMPEndpointManager</code> で Function Block が可視になるのは <strong>16 パターン中 1 パターンのみ</strong>:</p>
+
+                <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:14px;">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--border-color); text-align:left;">
+                            <th style="padding:8px;">パラメータ</th>
+                            <th style="padding:8px;">動作する値</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">direction</td><td style="padding:8px;"><code>.bidirectional</code></td></tr>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">maxSysEx8Streams</td><td style="padding:8px;"><code>0</code></td></tr>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">midi1Info</td><td style="padding:8px;"><code>.notMIDI1</code></td></tr>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">uiHint</td><td style="padding:8px;"><code>.unknown</code></td></tr>
+                        <tr style="border-bottom:1px solid var(--border-color);"><td style="padding:8px;">markAsStatic</td><td style="padding:8px;"><code>true</code></td></tr>
+                        <tr><td style="padding:8px;">登録タイミング</td><td style="padding:8px;">register を <strong>enable の前</strong>に実行</td></tr>
+                    </tbody>
+                </table>
+
+                <p>残り 15 パターンは、Baseline から 1 つのパラメータを変更した構成です。エラーは返らないが、<code>MIDIUMPEndpointManager</code> で <code>functionBlocks.count</code> が 0 になります。以下のいずれかを変更すると FB が不可視に:</p>
+
+                <ul>
+                    <li><code>direction</code> を <code>.input</code> または <code>.output</code> に変更</li>
+                    <li><code>maxSysEx8Streams</code> を <code>1</code> に変更</li>
+                    <li><code>midi1Info</code> を <code>.unrestricted</code> または <code>.restrictBW</code> に変更</li>
+                    <li><code>uiHint</code> を <code>.receiver</code> / <code>.sender</code> / <code>.sndRcv</code> に変更</li>
+                    <li><code>markAsStatic</code> を <code>false</code> に変更</li>
+                    <li>登録タイミングを <code>setEnabled(true)</code> の後に変更</li>
+                </ul>
+
+                <p>macOS 15 では全 16 パターンが direction=0 (Unknown) でしたが、macOS 26.4 では Case #0 が direction=3 (bidirectional) を正しく報告しています。</p>
+
+                <h3>Test B: MIDIInputPort UMP 受信</h3>
+
+                <p><code>MIDIInputPortCreateWithProtocol(._2_0)</code> で作成した入力ポートを全ソースに接続し 10 秒間監視。結果: <strong>受信 UMP 0 パケット、Data 64 (SysEx7) 0 パケット</strong>。外部デバイス未接続のため、CoreMIDI が UMP パスで CI SysEx をフィルタリングしているかは検証できていません。</p>
+
+                <h3>Test C: MIDIUMPEndpointManager 列挙</h3>
+
+                <p>UMP エンドポイントは 1 件のみ（PoC 自身の仮想エンドポイント）。外部デバイス未接続のため、KORG KeyStage 等が UMP エンドポイントとして登録されるかは未確認。</p>
 
                 <h3>Network MIDI 2.0 (UDP)</h3>
 
-                <p>macOS 26.4 で新たに追加された Network MIDI 2.0 は、UDP 上で UMP パケットを直接送受信する仕組みです。MIDI2Kit では受信パスの対応を完了しています。</p>
+                <p>macOS 26.4 の公式リリースノートで Network MIDI 2.0 サポートが確認されています。MIDI2Kit の受信パスは <code>MIDIInputPortCreateWithProtocol(._2_0)</code> を使用しており、Network MIDI 2.0 の UMP ストリームを透過的に処理できるはずですが、Network MIDI 2.0 ピアが利用できなかったためテスト未実施。<strong>送信パス</strong>は現在 <code>MIDISend</code> (レガシー MIDI 1.0 API) を使用中。<code>SysExSendStrategy.auto</code> で UMP ネイティブデバイスには <code>MIDISendEventList</code> にルーティングしますが、Network MIDI 2.0 セッション経由のテストは未実施です。</p>
 
-                <p>注意点として、Network MIDI 2.0 デバイスが接続されると、<code>CoreMIDITransport</code> が既存の BLE MIDI セッションを Network MIDI 2.0 セッションとして誤判定するケースが確認されています。この問題は次のリリースで修正予定です。</p>
+                <h3>MIDIDriverKit</h3>
 
-                <h3>MIDIDriverKit について</h3>
+                <p>仮想 MIDI 2.0 デバイスの代替手段として調査。結論: SPM パッケージには不適。C++ 必須、Xcode プロジェクト必須、DriverKit エンタイトルメント（Apple 承認必要）、SIP 有効環境必須。既存の <code>MIDIDestinationCreateWithBlock</code> / <code>MIDIUMPMutableEndpoint</code> アプローチが MIDI2Kit に適しています。</p>
 
-                <p>macOS 26.4 の MIDIDriverKit は、カーネル拡張なしで MIDI ドライバーを実装するための新しい仕組みです。調査の結果、Swift Package Manager ベースのライブラリでは利用できない DriverKit 専用の entitlement が必要なため、MIDI2Kit では追求しないことを決定しました。</p>
+                <h3>総合判定: PARTIAL-GO</h3>
+
+                <p><code>MIDIUMPMutableEndpoint</code> は macOS 26.4 で Baseline 構成で動作可能。FunctionBlock の全パラメータカスタマイズと UMP パスでの Data 64 受信は未検証。外部デバイス接続テストで広範な互換性が確認されるまで、レガシー API の継続使用を推奨します。</p>
 
                 <h2>コード例: SysExSendStrategy の実際の使い方</h2>
 
