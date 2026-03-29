@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI2Kit が macOS 15+ API に対応: UMP エンドポイント、MIDI-CI v1.2、Network MIDI 2.0 | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="MIDI2Kit が macOS 15 (Sequoia) の新しい CoreMIDI API に完全対応。MIDIUMPEndpointManager、MIDICIDeviceManager、MIDI-CI v1.2、Network MIDI 2.0 の統合について解説します。">
+    <meta property="og:title" content="MIDI2Kit が macOS 15+ API に対応: UMP エンドポイント、MIDI-CI v1.2、Network MIDI 2.0">
+    <meta property="og:description" content="MIDI2Kit が macOS 15 (Sequoia) の新しい CoreMIDI API に完全対応。MIDIUMPEndpointManager、MIDICIDeviceManager、MIDI-CI v1.2、Network MIDI 2.0 の統合について解説します。">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization-ja.html">
+    <meta property="article:published_time" content="2026-03-29">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MIDI2Kit が macOS 15+ API に対応: UMP エンドポイント、MIDI-CI v1.2、Network MIDI 2.0">
+    <meta name="twitter:description" content="MIDI2Kit が macOS 15 (Sequoia) の新しい CoreMIDI API に完全対応。MIDIUMPEndpointManager、MIDICIDeviceManager、MIDI-CI v1.2 の統合を解説。">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization-ja.html">
+    <link rel="alternate" hreflang="en" href="https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "MIDI2Kit が macOS 15+ API に対応: UMP エンドポイント、MIDI-CI v1.2、Network MIDI 2.0",
+      "datePublished": "2026-03-29",
+      "dateModified": "2026-03-29",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization-ja.html" },
+      "description": "MIDI2Kit が macOS 15 (Sequoia) の新しい CoreMIDI API に完全対応。MIDIUMPEndpointManager、MIDICIDeviceManager、MIDI-CI v1.2、Network MIDI 2.0 の統合について解説します。",
+      "inLanguage": "ja"
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>2026年3月29日</span>
+                <span class="post-tag">リリース</span>
+                <span>8分</span>
+            </div>
+            <h1>MIDI2Kit が macOS 15+ API に対応: UMP エンドポイント、MIDI-CI v1.2、Network MIDI 2.0</h1>
+            <p class="post-subtitle">macOS 15 (Sequoia) で導入された新しい CoreMIDI API との統合が完了しました。macOS 26.4 (Tahoe) での検証結果も含め、Apple の最新 MIDI 2.0 サブシステムとの橋渡しを実現します。</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>はじめに</h2>
+
+                <p>MIDI2Kit は、macOS 15 (Sequoia) で新たに公開された CoreMIDI API への統合を完了しました。<strong>MIDIUMPEndpointManager</strong> によるネイティブな UMP エンドポイント検出、<strong>MIDICIDeviceManager</strong> によるシステム管理の MIDI-CI セッション連携、そして MIDI-CI v1.2 の仕様準拠 &mdash; これらすべてが今回のアップデートで実現しています。</p>
+
+                <p>さらに、macOS 26.4 (Tahoe) ベータ環境での実機検証も行いました。新しい <strong>Network MIDI 2.0 (UDP)</strong> の受信パス対応と、<code>MIDIUMPMutableEndpoint</code> の改善を確認しています。検証で得られた知見についても本記事で詳しく解説します。</p>
+
+                <blockquote><p>今回の変更はすべて <code>@available(macOS 15, *)</code> ガード付きで実装されています。macOS 14 以前の環境でも、デフォルトの動作は一切変わりません。</p></blockquote>
+
+                <h2>macOS 15+ CoreMIDI の新機能</h2>
+
+                <p>macOS 15 (Sequoia) は、CoreMIDI に対して MIDI 2.0 時代に向けた重要な API 拡張をもたらしました。これらは単なる便利メソッドの追加ではなく、MIDI 2.0 エコシステムとの深い統合を可能にする基盤となるものです。</p>
+
+                <ul>
+                    <li><strong>MIDIUMPEndpointManager</strong> &mdash; UMP エンドポイントをシステムレベルで管理するクラス。接続されたデバイスが UMP をネイティブサポートしているかどうかを OS が直接把握し、アプリに通知します。</li>
+                    <li><strong>MIDICIDeviceManager</strong> &mdash; システムが管理する MIDI-CI セッションの情報を提供します。Logic Pro や GarageBand などの Apple 製アプリが内部的に使用している CI セッションを、サードパーティアプリからも参照できます。</li>
+                    <li><strong>MIDISendEventList</strong> &mdash; MIDI 2.0 UMP パケットをネイティブに送信する新しい API。従来の <code>MIDISend</code> に代わる、UMP ファーストな送信インターフェースです。</li>
+                    <li><strong>Network MIDI 2.0 (UDP)</strong> &mdash; macOS 26.4 で追加。RTP-MIDI の後継として、UDP 上で UMP パケットを直接送受信します。</li>
+                    <li><strong>MIDIUMPMutableEndpoint</strong> &mdash; macOS 26.4 で改善。仮想 UMP エンドポイントの作成と Function Block 登録がより柔軟になりました。</li>
+                </ul>
+
+                <h2>MIDI2Kit の新機能</h2>
+
+                <h3>1. UMP エンドポイント検出 (#36)</h3>
+
+                <p>従来、MIDI ソース・デスティネーションが UMP をネイティブサポートしているかどうかを判定するには、デバイス名のパターンマッチングや独自のヒューリスティックに頼るしかありませんでした。macOS 15 の <code>MIDIUMPEndpointManager</code> を活用することで、OS から直接この情報を取得できるようになりました。</p>
+
+                <p><code>MIDISourceInfo</code> と <code>MIDIDestinationInfo</code> に新しい <code>umpEndpointInfo</code> フィールドが追加されました。このフィールドには、デバイスがサポートする UMP バージョン、Function Block の数、プロトコルネゴシエーションの結果などが含まれます。また、簡便な判定のために <code>isUMPNative</code> プロパティも追加しています。</p>
+
+<pre><code class="language-swift">import MIDI2Kit
+
+let client = try MIDI2Client(name: "MyApp")
+try await client.start()
+
+for await event in await client.makeEventStream() {
+    if case .deviceDiscovered(let device) = event {
+        // UMP ネイティブデバイスかどうかを確認
+        let sourceInfo = await client.sourceInfo(for: device)
+        if sourceInfo?.isUMPNative == true {
+            print("\(device.displayName) は UMP ネイティブデバイスです")
+            print("UMP バージョン: \(sourceInfo?.umpEndpointInfo?.umpVersion ?? "不明")")
+        }
+    }
+}</code></pre>
+
+                <p>UMP エンドポイントの変更通知は、既存の <code>setupChanged</code> ストリームに統合されています。<code>MIDIUMPEndpointManager</code> の通知と CoreMIDI のセットアップ変更通知が単一のストリームに集約されるため、アプリ側で複数のオブザーバーを管理する必要はありません。</p>
+
+                <h3>2. スマート SysEx 送信 (#38)</h3>
+
+                <p>UMP ネイティブデバイスへの SysEx 送信には、従来の <code>MIDISend</code> ベースのレガシーパスよりも、<code>MIDISendEventList</code> を使った UMP ネイティブパスの方が信頼性が高いケースがあります。しかし KORG Module Pro のような BLE MIDI デバイスは、UMP 送信に対応していないため、レガシーパスを維持する必要があります。</p>
+
+                <p>この問題を解決するために、<code>SysExSendStrategy</code> を導入しました。</p>
+
+<pre><code class="language-swift">// デフォルト: レガシーパスのみ (KORG BLE MIDI などに安全)
+config.sysExSendStrategy = .legacyOnly
+
+// 自動選択: UMP ネイティブデバイスには MIDISendEventList を使用
+config.sysExSendStrategy = .auto
+
+// UMP のみ: UMP ネイティブデバイス専用アプリに
+config.sysExSendStrategy = .umpOnly</code></pre>
+
+                <p><code>.auto</code> モードでは、送信先デバイスの <code>isUMPNative</code> を実行時に確認し、適切なパスを自動選択します。既存の設定を変更せずに最新 API の恩恵を受けたい場合は、<code>.auto</code> への移行を推奨します。</p>
+
+                <h3>3. MIDICIDeviceManager 統合 (#37)</h3>
+
+                <p>macOS に付属する Logic Pro、GarageBand、Audio MIDI Setup などの Apple 製アプリは、内部的に MIDI-CI セッションを確立しています。これらのアプリが使用している MUID が MIDI2Kit の Discovery で検出されると、実際には応答のないデバイスとして登録されてしまい、Property Exchange のタイムアウトを引き起こす問題がありました。</p>
+
+                <p><code>MIDICIDeviceManager</code> との統合により、Apple 内蔵 CI セッションの MUID を自動的にブラックリストに追加するようになりました。</p>
+
+<pre><code class="language-swift">// 以前: 手動でブラックリストを管理する必要があった
+var ciConfig = CIManagerConfiguration()
+ciConfig.muidBlacklist = [0x0012A4B3, 0x0056C2D1] // 毎回異なる値
+
+// 現在: MIDICIDeviceManager が自動的に処理
+// 追加の設定は不要です</code></pre>
+
+                <p>ブラックリストは <code>MIDICIDeviceManager</code> の通知に基づいて動的に更新されます。Apple 製アプリの起動・終了に伴う CI セッションの変化にも追従するため、手動での <code>muidBlacklist</code> 設定は不要になりました。</p>
+
+                <h3>4. MIDI-CI v1.2 準拠 (#41)</h3>
+
+                <p>MIDI-CI の仕様は v1.1 から v1.2 にアップデートされ、いくつかの重要な変更が加えられました。MIDI2Kit はすべてのメッセージビルダーを v1.2 対応に更新しています。</p>
+
+                <p>最も重要な変更点は、<strong>PE Notify メッセージタイプの変更</strong>です。v1.1 では Notify に <code>0x38</code> を使用していましたが、v1.2 では <code>0x3F</code> に変更されました。MIDI2Kit は接続相手の <code>ciVersion</code> を自動的に確認し、適切なメッセージタイプを使い分けます。</p>
+
+<pre><code class="language-swift">// DiscoveredDevice に ciVersion フィールドが追加されました
+for await event in await client.makeEventStream() {
+    if case .deviceDiscovered(let device) = event {
+        // デバイスがサポートする CI バージョンを確認
+        print("CI バージョン: \(device.ciVersion)")
+        // => "1.1" または "1.2"
+    }
+}
+
+// メッセージビルダーに ciVersion パラメータが追加されました
+// (デフォルトは v1.1 で後方互換性を維持)
+let ackMessage = CIMessageBuilder.buildACK(
+    sourceMUID: myMUID,
+    destinationMUID: targetMUID,
+    originalTransactionSubID: 0x70,
+    ciVersion: device.ciVersion  // デバイスのバージョンに合わせる
+)</code></pre>
+
+                <p>また、これまで MIDI-CI 仕様では定義されていながら MIDI2Kit に実装がなかった <strong>ACK/NAK ビルダー</strong>が追加されました。Responder 実装でより細かな応答制御が可能になります。</p>
+
+                <h3>5. Profile Configuration (#42)</h3>
+
+                <p>MIDI-CI の Profile Configuration メッセージに対応しました。Profile は、特定の機能セット（Piano、Drawbar Organ、Guitar など）を標準化された方法でネゴシエートするための仕組みです。</p>
+
+<pre><code class="language-swift">// Profile Inquiry の送信
+let inquiryBytes = CIMessageBuilder.buildProfileInquiry(
+    sourceMUID: myMUID,
+    destinationMUID: targetMUID
+)
+try await transport.send(inquiryBytes, to: destination)
+
+// Profile の有効化要求
+let setOnBytes = CIMessageBuilder.buildProfileSetOn(
+    sourceMUID: myMUID,
+    destinationMUID: targetMUID,
+    profile: MIDICIProfileID(standard: .piano),
+    channel: 0,
+    numChannels: 1  // CI v1.2 の numChannels フィールド
+)
+try await transport.send(setOnBytes, to: destination)</code></pre>
+
+                <p>今回追加されたビルダーは以下の通りです:</p>
+                <ul>
+                    <li><code>buildProfileInquiry</code> &mdash; デバイスがサポートするプロファイルを問い合わせます</li>
+                    <li><code>buildProfileReply</code> &mdash; サポートするプロファイルのリストで応答します</li>
+                    <li><code>buildProfileSetOn</code> / <code>buildProfileSetOff</code> &mdash; プロファイルの有効化・無効化を要求します</li>
+                    <li><code>buildProfileEnabledReport</code> / <code>buildProfileDisabledReport</code> &mdash; プロファイルの状態変化を通知します</li>
+                </ul>
+
+                <p>パーサー側も <code>CIMessageParser</code> に <code>parseProfileReply</code> と <code>parseSetProfile</code> が追加されました。</p>
+
+                <h2>macOS 26.4 (Tahoe) での検証結果</h2>
+
+                <p>macOS 26.4 ベータでの実機検証で得られた知見を共有します。これらはベータ段階の結果であり、正式リリースまでに変更される可能性があります。</p>
+
+                <h3>registerFunctionBlocks: エラー解消</h3>
+
+                <p>macOS 15 では、<code>MIDIUMPMutableEndpoint</code> に Function Block を登録しようとすると全件エラー (<code>OSStatus -10849</code>) が発生していました。macOS 26.4 ではこのエラーが解消され、Function Block の登録が正常に動作することを確認しました。</p>
+
+                <p>ただし、<strong>動作する構成は Baseline のみ</strong>です。16 パターンのパラメータスイープ (グループ数 1/2/4、チャンネル割り当て MIDI 1.0/MIDI 2.0、Block Type 入力/出力/双方向、UMP バージョン 1.0/1.1) を試した結果、安定して認識されるのは最もシンプルな Baseline 構成 (グループ 1、MIDI 2.0 チャンネル、双方向、UMP 1.1) のみでした。他の構成では、登録は成功するものの Audio MIDI Setup での可視性に問題が残っています。</p>
+
+                <h3>Network MIDI 2.0 (UDP)</h3>
+
+                <p>macOS 26.4 で新たに追加された Network MIDI 2.0 は、UDP 上で UMP パケットを直接送受信する仕組みです。MIDI2Kit では受信パスの対応を完了しています。</p>
+
+                <p>注意点として、Network MIDI 2.0 デバイスが接続されると、<code>CoreMIDITransport</code> が既存の BLE MIDI セッションを Network MIDI 2.0 セッションとして誤判定するケースが確認されています。この問題は次のリリースで修正予定です。</p>
+
+                <h3>MIDIDriverKit について</h3>
+
+                <p>macOS 26.4 の MIDIDriverKit は、カーネル拡張なしで MIDI ドライバーを実装するための新しい仕組みです。調査の結果、Swift Package Manager ベースのライブラリでは利用できない DriverKit 専用の entitlement が必要なため、MIDI2Kit では追求しないことを決定しました。</p>
+
+                <h2>コード例: SysExSendStrategy の実際の使い方</h2>
+
+                <p>以下は、UMP ネイティブデバイスと MIDI 1.0 デバイスが混在する環境でのセットアップ例です。</p>
+
+<pre><code class="language-swift">import MIDI2Kit
+
+// 自動戦略で MIDI2Client を設定
+var config = MIDI2ClientConfiguration()
+config.sysExSendStrategy = .auto  // UMP ネイティブデバイスを自動検出
+
+// KORG Module Pro など BLE MIDI デバイスが混在する場合
+// config.sysExSendStrategy = .legacyOnly  // デフォルト (安全)
+
+let client = try MIDI2Client(name: "MyApp", configuration: config)
+try await client.start()
+
+// デバイス検出後の Property Exchange は通常通り動作
+// 送信戦略は内部で自動的に適用されます
+for await event in await client.makeEventStream() {
+    if case .deviceDiscovered(let device) = event {
+        // UMP ネイティブデバイスには MIDISendEventList を使用
+        // MIDI 1.0 デバイスには従来の MIDISend を使用
+        // アプリ側のコードは変更不要
+        let info = try await client.getDeviceInfo(from: device)
+        print("デバイス情報: \(info)")
+    }
+}</code></pre>
+
+                <h2>後方互換性</h2>
+
+                <p>今回の変更はすべて後方互換性を維持しています。</p>
+
+                <ul>
+                    <li><strong><code>@available(macOS 15, *)</code> ガード</strong> &mdash; 新しい CoreMIDI API はすべて可用性チェックで保護されています。macOS 14 以前では既存のコードパスが使用されます。</li>
+                    <li><strong>デフォルト動作は変更なし</strong> &mdash; <code>SysExSendStrategy</code> のデフォルトは <code>.legacyOnly</code>、<code>ciVersion</code> のデフォルトは v1.1 です。明示的にオプトインするまで、既存のアプリの動作は変わりません。</li>
+                    <li><strong>705 テスト全パス</strong> &mdash; 既存のすべてのテストが引き続き通過することを確認しています。新機能のテストも含めて 705 件のテストが 100% パスしています。</li>
+                </ul>
+
+                <p>macOS 15 未満をサポートする必要があるプロジェクトでも、MIDI2Kit を安全にアップデートできます。新機能を利用したい場合は、<code>if #available(macOS 15, *)</code> で囲んだコードブロック内で新しい API を呼び出してください。</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>MIDI2Kit を始める</h3>
+                    <p>macOS 15+ API 対応を含む最新版は GitHub で公開しています。Swift Package Manager で簡単に導入できます。</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">GitHubで見る</a>
+                        <a href="/docs/" class="btn btn-secondary">ドキュメントを読む</a>
+                    </div>
+                </div>
+
+                <!-- Related Articles -->
+                <h2>関連記事</h2>
+                <ul>
+                    <li><a href="2026-03-08-midi2-ecosystem-2026-ja.html">2026年のMIDI 2.0エコシステム &mdash; Windows対応・新ハードウェア・Swift開発者への影響</a></li>
+                    <li><a href="2026-03-08-swift-midi2-getting-started-ja.html">SwiftでMIDI 2.0開発を始める &mdash; デベロッパー向けガイド</a></li>
+                    <li><a href="2026-03-08-introducing-midi2kit.html">Introducing MIDI2Kit &mdash; MIDI 2.0 for Swift</a></li>
+                </ul>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="/blog/">&larr; すべての記事</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>
