@@ -466,7 +466,7 @@
 
                 <ul>
                     <li><strong>MIDIUMPEndpointManager</strong> (macOS 15.0+) &mdash; UMP エンドポイントをシステムレベルで管理するクラス。macOS 15 SDK ヘッダーで確認。リリースノートでの言及なし。</li>
-                    <li><strong>MIDICIDeviceManager</strong> (macOS 15.0+) &mdash; システムが管理する MIDI-CI セッションの情報を提供。macOS 15 SDK ヘッダーで確認。リリースノートでの言及なし。</li>
+                    <li><strong>MIDICIDeviceManager</strong> (macOS 15.0+) &mdash; CoreMIDI が認識している CI 対応デバイスのリストを提供。実機テストでは Apple の SysEx ID (0x11) を持つ CI 参加者が含まれることを確認。macOS 15 SDK ヘッダーで確認。リリースノートでの言及なし。</li>
                     <li><strong>MIDISendEventList</strong> (macOS 11.0+) &mdash; MIDI 2.0 UMP パケットのネイティブ送信 API。<strong>macOS 15 の新 API ではなく、macOS Big Sur から存在</strong>。MIDI2Kit のスマート SysEx ルーティングの基盤として活用。</li>
                     <li><strong>Network MIDI 2.0 (UDP)</strong> (macOS 26.4) &mdash; macOS 26.4 の公式リリースノートで確認できる唯一の CoreMIDI 関連変更。UDP 上で UMP パケットを直接送受信。</li>
                     <li><strong>MIDIUMPMutableEndpoint</strong> (macOS 15.0+) &mdash; macOS 26.4 での実機テストにより、<code>registerFunctionBlocks</code> エラーの解消を確認（ただしパラメータサポートは限定的）。</li>
@@ -517,9 +517,9 @@ config.sysExSendStrategy = .umpOnly</code></pre>
 
                 <h3>3. MIDICIDeviceManager 統合 (#37)</h3>
 
-                <p>macOS に付属する Logic Pro、GarageBand、Audio MIDI Setup などの Apple 製アプリは、内部的に MIDI-CI セッションを確立しています。これらのアプリが使用している MUID が MIDI2Kit の Discovery で検出されると、実際には応答のないデバイスとして登録されてしまい、Property Exchange のタイムアウトを引き起こす問題がありました。</p>
+                <p>MIDI-CI Discovery を行うと、Apple の manufacturer SysEx ID (<code>0x11</code>) を持つ CI 参加者が検出されることがあります。これらの参加者は Property Exchange リクエストに応答しないため、タイムアウトの原因となっていました。これらの正体は Apple の公式ドキュメントやリリースノートには記載されておらず、実機テストで経験的に確認したものです。</p>
 
-                <p><code>MIDICIDeviceManager</code> との統合により、Apple 内蔵 CI セッションの MUID を自動的にブラックリストに追加するようになりました。</p>
+                <p>MIDI2Kit は macOS 15 SDK の <code>MIDICIDeviceManager</code> クラスを使い、起動時に <code>discoveredCIDevices</code> を参照して、Apple の SysEx ID (<code>0x11 0x00 0x00</code>) を持つデバイスの MUID をヒューリスティックにブラックリストへ追加します。これは公式ガイダンスに基づくものではなく、経験的な回避策です。</p>
 
 <pre><code class="language-swift">// 以前: 手動でブラックリストを管理する必要があった
 var ciConfig = CIManagerConfiguration()
@@ -528,11 +528,11 @@ ciConfig.muidBlacklist = [0x0012A4B3, 0x0056C2D1] // 毎回異なる値
 // 現在: MIDICIDeviceManager が自動的に処理
 // 追加の設定は不要です</code></pre>
 
-                <p>ブラックリストは <code>MIDICIDeviceManager</code> の通知に基づいて動的に更新されます。Apple 製アプリの起動・終了に伴う CI セッションの変化にも追従するため、手動での <code>muidBlacklist</code> 設定は不要になりました。</p>
+                <p>ブラックリストは <code>MIDICIDeviceManager</code> の通知に基づいて動的に更新されます。macOS 15+ では手動での <code>muidBlacklist</code> 設定は不要になりますが、手動 API はフォールバックとして引き続き利用可能です。</p>
 
                 <h3>4. MIDI-CI v1.2 準拠 (#41)</h3>
 
-                <p>MIDI-CI の仕様は v1.1 から v1.2 にアップデートされ、いくつかの重要な変更が加えられました。MIDI2Kit はすべてのメッセージビルダーを v1.2 対応に更新しています。</p>
+                <p><a href="https://midi.org/details-about-midi-2-0-midi-ci-profiles-and-property-exchange-updated-june-2023">MIDI-CI v1.2 仕様</a> (M2-101-UM, MIDI Association が 2023年6月に公開) では、Management Messages (ACK/NAK)、Notify メッセージタイプの変更、バージョンネゴシエーションが追加されました。これは MIDI Association の仕様であり、Apple の macOS 機能ではありません。MIDI2Kit のメッセージビルダー/パーサーをこの仕様に準拠させました。</p>
 
                 <p>最も重要な変更点は、<strong>PE Notify メッセージタイプの変更</strong>です。v1.1 では Notify に <code>0x38</code> を使用していましたが、v1.2 では <code>0x3F</code> に変更されました。MIDI2Kit は接続相手の <code>ciVersion</code> を自動的に確認し、適切なメッセージタイプを使い分けます。</p>
 

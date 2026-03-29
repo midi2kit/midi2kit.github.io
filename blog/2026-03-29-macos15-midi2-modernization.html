@@ -453,7 +453,7 @@
 
                 <h2>Why This Release Matters</h2>
 
-                <p>macOS 15 Sequoia introduced new CoreMIDI classes discoverable in the SDK headers: <code>MIDIUMPEndpointManager</code> for querying UMP endpoint metadata and <code>MIDICIDeviceManager</code> for observing system-managed MIDI-CI sessions. These classes were not highlighted in Apple&rsquo;s release notes, but they are present in the SDK and usable at runtime. Note that <code>MIDISendEventList</code> &mdash; the MIDI 2.0 native send path &mdash; has been available since macOS 11 Big Sur; it is not new to macOS 15.</p>
+                <p>macOS 15 Sequoia introduced new CoreMIDI classes discoverable in the SDK headers: <code>MIDIUMPEndpointManager</code> for querying UMP endpoint metadata and <code>MIDICIDeviceManager</code> for observing CI-capable devices known to CoreMIDI. These classes were not highlighted in Apple&rsquo;s release notes, but they are present in the SDK and usable at runtime. Note that <code>MIDISendEventList</code> &mdash; the MIDI 2.0 native send path &mdash; has been available since macOS 11 Big Sur; it is not new to macOS 15.</p>
 
                 <p>Meanwhile, macOS 26.4 Tahoe added <strong>Network MIDI 2.0 (UDP)</strong> support at the system level &mdash; the only CoreMIDI-related change confirmed in the official release notes for that version.</p>
 
@@ -467,7 +467,7 @@
 
                 <ul>
                     <li><strong>MIDIUMPEndpointManager</strong> (macOS 15.0+) &mdash; A singleton that enumerates all UMP endpoints visible to the system. Each endpoint exposes function block information, MIDI version support, and a manufacturer-assigned name. Found in the macOS 15 SDK headers; not highlighted in official release notes.</li>
-                    <li><strong>MIDICIDeviceManager</strong> (macOS 15.0+) &mdash; Tracks MIDI-CI-capable devices that the system itself has discovered. This includes Apple&rsquo;s own built-in MIDI-CI clients. Found in the macOS 15 SDK headers; not highlighted in official release notes.</li>
+                    <li><strong>MIDICIDeviceManager</strong> (macOS 15.0+) &mdash; Provides a list of <code>MIDICIDevice</code> objects discovered by CoreMIDI. In practice, we observe that this list includes CI participants with Apple&rsquo;s manufacturer SysEx ID (0x11), which we use as a heuristic for auto-populating the MUID blacklist. Found in the macOS 15 SDK headers; not highlighted in official release notes.</li>
                     <li><strong>MIDISendEventList</strong> (macOS 11.0+) &mdash; The MIDI 2.0 send path, available since macOS Big Sur. Not new to macOS 15, but central to MIDI2Kit&rsquo;s smart SysEx routing for UMP-native destinations.</li>
                     <li><strong>Network MIDI 2.0 (UDP)</strong> (macOS 26.4) &mdash; The only CoreMIDI-related change confirmed in Apple&rsquo;s official macOS 26.4 release notes. Extends the existing Network MIDI session model to carry UMP packets over UDP.</li>
                     <li><strong>MIDIUMPMutableEndpoint</strong> (macOS 15.0+) &mdash; Our testing on macOS 26.4 shows the <code>registerFunctionBlocks</code> error (present on macOS 15) has been resolved, though with limited parameter support.</li>
@@ -508,15 +508,15 @@ transport.sysExSendStrategy = .umpOnly</code></pre>
 
                 <h3>3. MIDICIDeviceManager Integration (#37)</h3>
 
-                <p>One of the more subtle problems in MIDI-CI Discovery is the presence of Apple&rsquo;s own built-in CI clients. macOS exposes several internal MIDI-CI participants &mdash; system services that respond to Discovery broadcasts and register their own MUIDs. Without awareness of these participants, apps doing their own Discovery would attempt Property Exchange with endpoints that have no PE resources, resulting in timeouts and confusing diagnostic output.</p>
+                <p>One of the more subtle problems in MIDI-CI Discovery is the presence of CI participants whose MUIDs carry Apple&rsquo;s manufacturer SysEx ID (<code>0x11</code>). In our testing, these participants appear in Discovery broadcasts but do not respond to Property Exchange requests, resulting in timeouts. The exact nature of these participants is not documented in Apple&rsquo;s public release notes or developer documentation &mdash; we observe them empirically through the <code>MIDICIDeviceManager</code> class available in the macOS 15 SDK.</p>
 
-                <p>MIDI2Kit now calls <code>MIDICIDeviceManager</code> at startup on macOS 15+ and automatically blacklists the MUIDs of Apple-managed devices. The identification heuristic checks the manufacturer SysEx ID bytes: the Apple identifier (<code>0x11 0x00 0x00</code>) is used to flag system participants without requiring any list maintenance in application code.</p>
+                <p>MIDI2Kit now queries <code>MIDICIDeviceManager.shared.discoveredCIDevices</code> at startup on macOS 15+ and uses a heuristic to blacklist MUIDs whose <code>deviceInfo.manufacturerID</code> matches Apple&rsquo;s SysEx ID (<code>0x11 0x00 0x00</code>). This is an empirical workaround, not based on any official Apple guidance.</p>
 
-                <p>The integration is dynamic: MIDI2Kit observes <code>MIDICIDeviceManager</code> notifications and updates the blacklist as the system adds or removes CI devices. Apps that previously needed to configure <code>muidBlacklist</code> manually can remove that code entirely on macOS 15+.</p>
+                <p>The integration is dynamic: MIDI2Kit observes <code>MIDICIDeviceManager</code> notifications and updates the blacklist as CI devices appear or disappear. Apps that previously needed to configure <code>muidBlacklist</code> manually can remove that code on macOS 15+, though the manual API remains available as a fallback.</p>
 
                 <h3>4. MIDI-CI v1.2 Compliance (#41)</h3>
 
-                <p>MIDI-CI version 1.2, finalized in the MIDI 2.0 specification updates, introduces Management Messages: a new message category that includes ACK and NAK responses at the CI protocol level, a revised Notify message type, and version negotiation fields in Discovery. MIDI2Kit now implements the full v1.2 message set.</p>
+                <p>The <a href="https://midi.org/details-about-midi-2-0-midi-ci-profiles-and-property-exchange-updated-june-2023">MIDI-CI v1.2 specification</a> (M2-101-UM, published by the MIDI Association in June 2023) introduces Management Messages: ACK/NAK responses at the CI protocol level, a revised Notify message type, and version negotiation fields in Discovery. This is a MIDI Association standard, not an Apple feature &mdash; MIDI2Kit&rsquo;s v1.2 compliance work updates its own message builders and parsers to conform to this specification.</p>
 
                 <p>All message builders in <code>CIMessageBuilder</code> now accept an optional <code>ciVersion</code> parameter (defaulting to <code>.v1_1</code> for backward compatibility). The <code>DiscoveredDevice</code> type gains a <code>ciVersion</code> field populated from the Discovery Reply, enabling per-device version tracking.</p>
 
