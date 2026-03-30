@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why Apple Can't Finish MIDI 2.0 (and Why KORG Can) | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="Apple's CoreMIDI handles UMP transport but leaves the upper protocol layers — MIDI-CI Discovery management, Property Exchange transactions, capability negotiation — incomplete. Meanwhile, KORG ships working PE between KeyStage and Module Pro. Here's why the gap exists and what it means for third-party developers.">
+    <meta property="og:title" content="Why Apple Can't Finish MIDI 2.0 (and Why KORG Can)">
+    <meta property="og:description" content="Apple's CoreMIDI handles UMP transport but leaves the upper protocol layers incomplete. KORG ships working Property Exchange. Here's why the gap exists.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-30-why-apple-cant-finish-midi2.html">
+    <meta property="article:published_time" content="2026-03-30">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Why Apple Can't Finish MIDI 2.0 (and Why KORG Can)">
+    <meta name="twitter:description" content="Apple's CoreMIDI handles UMP transport but leaves the upper protocol layers incomplete. KORG ships working Property Exchange between their own devices. Here's what's going on.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-30-why-apple-cant-finish-midi2.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Why Apple Can't Finish MIDI 2.0 (and Why KORG Can)",
+      "datePublished": "2026-03-30",
+      "dateModified": "2026-03-30",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-30-why-apple-cant-finish-midi2.html" },
+      "description": "Apple's CoreMIDI handles UMP transport but leaves the upper protocol layers — MIDI-CI Discovery management, Property Exchange transactions, capability negotiation — incomplete. Meanwhile, KORG ships working PE between KeyStage and Module Pro. Here's why the gap exists and what it means for third-party developers.",
+      "inLanguage": "en"
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 30, 2026</span>
+                <span class="post-tag">Analysis</span>
+                <span>10 min read</span>
+            </div>
+            <h1>Why Apple Can&rsquo;t Finish MIDI 2.0 (and Why KORG Can)</h1>
+            <p class="post-subtitle">Apple&rsquo;s CoreMIDI handles UMP transport, but the upper protocol layers &mdash; MIDI-CI Discovery management, Property Exchange transactions, capability negotiation &mdash; remain incomplete. KORG ships working PE between their own devices. This post examines why the gap exists and what it means for third-party developers.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>Logic Pro&rsquo;s MIDI 2.0 Status</h2>
+
+                <p>Logic Pro is Apple&rsquo;s flagship DAW, and it claims MIDI 2.0 support. Property Exchange for auto-mapping, 32-bit velocity, the headline features. But the actual implementation is limited. Stable MIDI-CI Property Exchange sessions are rare in the wild. KORG KeyStage integration sometimes works better through third-party code than through Apple&rsquo;s own stack.</p>
+
+                <p>Building MIDI2Kit forced me to look closely at what CoreMIDI actually does under the hood. What I found: <strong>CoreMIDI itself hasn&rsquo;t finished implementing the upper layers of MIDI 2.0</strong>.</p>
+
+                <h2>Evidence: CoreMIDI&rsquo;s Incomplete State</h2>
+
+                <p>The Apple-manufactured MIDI-CI participant (<code>0x11 0x00 0x00</code>) tells the whole story. As I detailed in a <a href="2026-03-29-macos15-midi2-modernization.html">previous post</a>:</p>
+
+                <ul>
+                    <li>It exists in <code>MIDICIDeviceManager</code> &mdash; so it&rsquo;s registered as a CI participant</li>
+                    <li>It responds to Discovery &mdash; the protocol&rsquo;s front door is implemented</li>
+                    <li>It ignores all PE requests &mdash; the actual functionality is missing (or locked away from third parties)</li>
+                </ul>
+
+                <p><code>MIDIUMPMutableEndpoint</code>&rsquo;s function block registration shows the same pattern. On macOS 15, all 16 parameter combinations threw errors. On macOS 26.4, the errors are gone, but only 1 of 16 combinations actually works. The other 15 fail silently &mdash; no error returned, but the function block simply doesn&rsquo;t appear in <code>MIDIUMPEndpointManager</code>.</p>
+
+                <p>The UMP receive path is suspect too. Opening a port with <code>MIDIInputPortCreateWithProtocol(._2_0)</code> and monitoring for 10 seconds yields zero UMP packets, zero Data 64 SysEx7 packets. Without external devices connected, I couldn&rsquo;t confirm whether CoreMIDI&rsquo;s internal CI SysEx even routes through the UMP path.</p>
+
+                <p>These APIs exist in the macOS 15 SDK headers. They don&rsquo;t appear in release notes or WWDC sessions. Apple seems to be saying: &ldquo;not ready for public consumption yet.&rdquo;</p>
+
+                <h2>Logic Pro Sits on Top of CoreMIDI</h2>
+
+                <p>Logic Pro is built on CoreMIDI. If CoreMIDI&rsquo;s MIDI-CI and PE implementation is incomplete, Logic Pro can&rsquo;t deliver complete MIDI 2.0 support &mdash; not without building its own parallel protocol stack.</p>
+
+                <p>CoreMIDI works fine as a pipe. UMP packet send/receive is solid. But the protocol layers above transport &mdash; MIDI-CI Discovery management, PE transaction handling, device capability negotiation &mdash; those aren&rsquo;t ready.</p>
+
+                <p>Logic Pro might have its own internal implementation of these layers. But the fact that Apple&rsquo;s own CI node doesn&rsquo;t respond to PE requests tells us that at the OS level, this is still under construction.</p>
+
+                <h2>Meanwhile, KORG Ships Working PE</h2>
+
+                <p>KORG KeyStage paired with KORG Module Pro: MIDI-CI Discovery works, Property Exchange works, sound names show up on the KeyStage LCD, parameters map to hardware knobs, program changes switch sounds. It&rsquo;s the MIDI 2.0 promise, delivered.</p>
+
+                <p>Why can KORG do this when Apple can&rsquo;t?</p>
+
+                <h3>They Control Both Sides</h3>
+
+                <p>KORG builds KeyStage (hardware) and Module Pro (software). They own the code on both ends. When one side needs adjustment, they can change the other to match.</p>
+
+                <p>This isn&rsquo;t a case of &ldquo;we implemented the spec and it just worked.&rdquo; It&rsquo;s closer to &ldquo;we tuned both sides until KeyStage and Module talk to each other.&rdquo; The existence of proprietary resources like <code>X-ProgramEdit</code> and <code>X-ParameterList</code> proves this &mdash; they added custom protocol extensions that aren&rsquo;t in the MIDI 2.0 spec, designed for communication between their own products.</p>
+
+                <h3>Shared Knowledge Between Manufacturers</h3>
+
+                <p>KORG, Roland, Yamaha, and Apple all participate in the MMA (MIDI Manufacturers Association) where the MIDI 2.0 spec is developed. They sit in the same rooms, discuss the same drafts.</p>
+
+                <p>But there&rsquo;s implementation knowledge that never makes it into the spec:</p>
+
+                <ul>
+                    <li>Whether to use Mcoded7 encoding or not</li>
+                    <li>Whether <code>canGet</code>/<code>canSet</code> should be bool or string type</li>
+                    <li>That Discovery re-sends need a 200ms gap</li>
+                    <li>That PE Notify echo-back must be suppressed to prevent LCD freezes</li>
+                </ul>
+
+                <p>These details don&rsquo;t appear in any published document. KORG&rsquo;s keyboard talks to KORG&rsquo;s app because the same team (or closely collaborating teams) knows both sides of the implementation.</p>
+
+                <p>It&rsquo;s likely that MMA member companies share implementation know-how informally. Hardware manufacturers meeting at spec sessions, exchanging notes on &ldquo;here&rsquo;s how we handle this edge case&rdquo; &mdash; this would be natural and expected.</p>
+
+                <h3>Third Parties Are Left Out</h3>
+
+                <p>The problem: this implementation knowledge doesn&rsquo;t reach third-party developers.</p>
+
+                <p>Every piece of KORG-specific behavior I discovered while building MIDI2Kit came from SysEx sniffing &mdash; intercepting raw MIDI traffic and reverse-engineering the protocol. Zero information came from published documentation. The <code>manufacturerName</code> gating, the <code>X-ProgramEdit</code> format, the Initiator-only constraint, Discovery re-send timing, PE Notify echo-back avoidance &mdash; all reverse-engineered.</p>
+
+                <p>Apple might be in a similar position. CoreMIDI&rsquo;s half-finished MIDI-CI implementation could reflect the difficulty of building upper protocol layers without tight coordination with hardware manufacturers.</p>
+
+                <h2>What &ldquo;MIDI 2.0 Support&rdquo; Actually Means in 2026</h2>
+
+                <p>When a company says &ldquo;MIDI 2.0 support&rdquo; in 2026, what they mean varies enormously:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>What it means</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>UMP Transport</td>
+                            <td>Can send/receive UMP packets</td>
+                            <td>CoreMIDI (macOS 11+)</td>
+                        </tr>
+                        <tr>
+                            <td>High-Resolution Values</td>
+                            <td>32-bit velocity and CCs</td>
+                            <td>Most new keyboards</td>
+                        </tr>
+                        <tr>
+                            <td>MIDI-CI Discovery</td>
+                            <td>Automatic device detection</td>
+                            <td>KORG, Studio One</td>
+                        </tr>
+                        <tr>
+                            <td>Property Exchange</td>
+                            <td>JSON-based data exchange</td>
+                            <td>KORG (same-vendor only, stable)</td>
+                        </tr>
+                        <tr>
+                            <td>Full Interop</td>
+                            <td>Cross-vendor PE works reliably</td>
+                            <td>Nobody. Not yet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>The bottom layer &mdash; UMP transport &mdash; is widely implemented. But Property Exchange interoperability, even within a single manufacturer&rsquo;s ecosystem, still relies on proprietary extensions. Cross-vendor PE that &ldquo;just works&rdquo; doesn&rsquo;t exist yet.</p>
+
+                <h2>Bridging the Gap Ourselves</h2>
+
+                <p>MIDI2Kit is one attempt to close this gap.</p>
+
+                <p>KORG&rsquo;s proprietary protocol was reverse-engineered and integrated into the library. Apple&rsquo;s unresponsive CI participant is auto-blacklisted. BLE MIDI instability is handled with warm-up sequences and fallback strategies.</p>
+
+                <p>This is one developer&rsquo;s work against one manufacturer&rsquo;s devices. I have no idea what Roland, Yamaha, or Native Instruments do differently. But the structural problem is the same everywhere: &ldquo;things not written in the spec&rdquo; differ from vendor to vendor.</p>
+
+                <p>Until manufacturers publish their implementation details &mdash; or the spec itself becomes detailed enough to eliminate ambiguity &mdash; third-party developers will keep reverse-engineering one device at a time. MIDI2Kit aims to be the place where that accumulated knowledge lives, so nobody else has to start from zero.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Get Started with MIDI2Kit</h3>
+                    <p>The MIDI 2.0 library that handles the messy reality of real-world devices. Open source, MIT licensed.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Related Articles -->
+                <h2>Related Articles</h2>
+                <ul>
+                    <li><a href="2026-03-29-macos15-midi2-modernization.html">MIDI2Kit Adds macOS 15+ API Support: UMP Endpoints, MIDI-CI v1.2, and Network MIDI 2.0</a></li>
+                    <li><a href="2026-03-08-midi2-ecosystem-2026.html">MIDI 2.0 Ecosystem in 2026: Windows Support, New Hardware, and What It Means for Swift Developers</a></li>
+                    <li><a href="2026-03-08-introducing-midi2kit.html">Introducing MIDI2Kit &mdash; MIDI 2.0 for Swift</a></li>
+                </ul>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="/blog/">&larr; All Posts</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>
