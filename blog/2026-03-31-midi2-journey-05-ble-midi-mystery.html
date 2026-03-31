@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bizarre World of BLE MIDI (MIDI-CI Dev Journey, Part 5) | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="Running MIDI-CI Property Exchange over BLE MIDI sounds great in theory. In practice, you get packet loss with no retry mechanism, iPad-specific corruption bugs, and a mysterious warm-up ritual. Here's what I learned building MIDI2Kit's BLE support.">
+    <meta property="og:title" content="The Bizarre World of BLE MIDI (MIDI-CI Dev Journey, Part 5)">
+    <meta property="og:description" content="Running Property Exchange over BLE MIDI sounds great in theory. In practice: packet loss with no retry, iPad-only corruption bugs, and a mysterious warm-up ritual. Here's what I found.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-31-midi2-journey-05-ble-midi-mystery.html">
+    <meta property="article:published_time" content="2026-03-31">
+    <meta property="article:series" content="MIDI-CI Dev Journey">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="The Bizarre World of BLE MIDI (MIDI-CI Dev Journey, Part 5)">
+    <meta name="twitter:description" content="Running Property Exchange over BLE MIDI sounds great in theory. In practice: packet loss with no retry, iPad-only corruption bugs, and mysterious warm-up rituals.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-31-midi2-journey-05-ble-midi-mystery.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "The Bizarre World of BLE MIDI (MIDI-CI Dev Journey, Part 5)",
+      "datePublished": "2026-03-31",
+      "dateModified": "2026-03-31",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-31-midi2-journey-05-ble-midi-mystery.html" },
+      "description": "Running MIDI-CI Property Exchange over BLE MIDI sounds great in theory. In practice, you get packet loss with no retry mechanism, iPad-specific corruption bugs, and a mysterious warm-up ritual. Here's what I learned building MIDI2Kit's BLE support.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "Book",
+        "name": "MIDI-CI Dev Journey",
+        "numberOfPages": 10
+      }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 31, 2026</span>
+                <span class="post-tag">Series</span>
+                <span>Part 5 of 10</span>
+                <span>8 min read</span>
+            </div>
+            <h1>The Bizarre World of BLE MIDI</h1>
+            <p class="post-subtitle">BLE MIDI makes wireless keyboard connections effortless. But the moment you try to run MIDI-CI Property Exchange over it &mdash; sending large, chunked SysEx responses through a lossy radio link with zero retry mechanism &mdash; things get interesting fast.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>Running Property Exchange Over BLE: What Could Go Wrong?</h2>
+
+                <p>BLE MIDI is genuinely convenient. No cables, and for simple note on/off messages the latency is acceptable. When I started building MIDI2Kit&rsquo;s support for the KORG KeyStage, BLE was the obvious connection path &mdash; the whole point of the KeyStage&rsquo;s wireless mode is to cut the cable clutter on your desk.</p>
+
+                <p>Simple MIDI 1.0 traffic over BLE? Fine. But Property Exchange is a different story. PE involves large JSON payloads, and large payloads get split into multiple SysEx chunks. Suddenly you&rsquo;re playing a game of &ldquo;did all the chunks arrive?&rdquo; over a radio link that nobody designed for this use case.</p>
+
+                <h2>Packet Loss With No Retry</h2>
+
+                <p>Here&rsquo;s the fundamental problem: BLE drops packets. Not often, but it happens. And the PE spec has no retry mechanism. If one chunk in a multi-chunk response gets lost, the entire response is garbage. You wait for a timeout, then try again from the beginning.</p>
+
+                <p>The ResourceList &mdash; the response that enumerates all the resources a device exposes &mdash; is a typical multi-chunk response. It&rsquo;s also the thing you absolutely need before you can do anything useful with PE. So you&rsquo;re in a situation where your most critical first request is also your most likely to fail.</p>
+
+                <p>The spec is silent on retries. I checked multiple times. There&rsquo;s no defined behavior for &ldquo;chunk N of a response was lost.&rdquo; The closest thing to guidance is &ldquo;wait for timeout.&rdquo; That&rsquo;s not great when your users are waiting for a connection indicator to turn green.</p>
+
+                <h2>The iPad Bug I Could Never Explain</h2>
+
+                <p>This one still bothers me. On iPad (specifically iPad14,10 running iOS 18.6.2), receiving chunk 2 of a ResourceList response produces corrupted data. Bytes 338&ndash;342 come out as binary garbage. Every single time. 100% reproducible.</p>
+
+                <p>On iPhone &mdash; same code, same KORG device, same BLE connection &mdash; it works perfectly.</p>
+
+                <p>The possible explanations I considered:</p>
+
+                <ul>
+                    <li>A CoreMIDI BLE MIDI driver bug that only manifests on iPad hardware</li>
+                    <li>A KORG Module Pro bug specific to the iPad build</li>
+                    <li>MTU differences between iPad and iPhone affecting how chunks get framed</li>
+                </ul>
+
+                <p>I couldn&rsquo;t isolate which one it was. CoreMIDI is closed source. KORG&rsquo;s firmware is closed source. There&rsquo;s no way to instrument either side. I documented the reproduction steps, added it to Known Limitations, and moved on. Sometimes that&rsquo;s the honest answer.</p>
+
+                <h2>The Warm-Up Problem</h2>
+
+                <p>Here&rsquo;s a strange one. If you request ResourceList immediately after a BLE MIDI connection is established, it fails most of the time. But if you first request DeviceInfo (a small, single-chunk response), then request ResourceList, the success rate jumps dramatically.</p>
+
+                <p>I started calling this &ldquo;warm-up.&rdquo; My working theory is that the BLE connection parameters negotiation isn&rsquo;t complete at the moment the MIDI stack reports &ldquo;connected.&rdquo; The DeviceInfo request buys enough time for the radio link to stabilize. Or maybe it&rsquo;s something on KORG Module Pro&rsquo;s side &mdash; their BLE stack needs a beat to initialize. I genuinely don&rsquo;t know.</p>
+
+                <p>What I do know is that it works. The <code>.korgBLEMIDI</code> preset in MIDI2Kit bakes in this warm-up sequence automatically:</p>
+
+                <pre><code class="language-swift">let client = try MIDI2Client(name: "MyApp", preset: .korgBLEMIDI)
+// Internally: fetches DeviceInfo first, then requests ResourceList
+// You don't have to think about it</code></pre>
+
+                <p>If you&rsquo;re building on top of MIDI2Kit, this detail is invisible to you. But it took me a while to discover it.</p>
+
+                <h2>Timeout Design for an Unreliable Channel</h2>
+
+                <p>The default PE timeout in MIDI2Kit is 5 seconds. For wired connections that&rsquo;s plenty. Over BLE, a multi-chunk response can legitimately take longer than that under congested radio conditions &mdash; I&rsquo;ve seen responses take over 3 seconds on an otherwise healthy connection.</p>
+
+                <p>The <code>.korgBLEMIDI</code> preset extends the timeout to 10 seconds. It also sets <code>maxInflightPerDevice = 1</code>, meaning requests are serialized rather than pipelined. Sending multiple PE requests simultaneously increases BLE link load, which increases packet loss, which defeats the purpose. One request at a time, wait for the response, then send the next.</p>
+
+                <p>These settings aren&rsquo;t ideal &mdash; serialized requests with long timeouts make for slow connection setup. But they&rsquo;re what actually works reliably in practice.</p>
+
+                <h2>When All Else Fails, Skip ResourceList</h2>
+
+                <p>There&rsquo;s a final fallback for when ResourceList just won&rsquo;t cooperate. Since I know KORG&rsquo;s resource structure &mdash; hard won from SysEx sniffing sessions &mdash; I can skip the discovery step and go directly to known resources:</p>
+
+                <pre><code class="language-swift">// If ResourceList times out, fall back to known KORG resources
+let knownResources = ["DeviceInfo", "CMList", "ProgramList"]</code></pre>
+
+                <p>This sacrifices generality for reliability. It only works because I reverse-engineered KORG&rsquo;s specific resource layout. For a hypothetical future device from a different manufacturer, this fallback wouldn&rsquo;t apply. But for the KORG case, it means users get a working connection even when the BLE environment is hostile.</p>
+
+                <h2>The SysEx Send Path Trap</h2>
+
+                <p>macOS 15 introduced <code>MIDISendEventList</code>, the UMP-native send path. New API, better design, obviously the right choice going forward.</p>
+
+                <p>Except KORG BLE MIDI devices don&rsquo;t handle SysEx correctly when it comes through that path. You have to use the legacy <code>MIDISend</code> function &mdash; the MIDI 1.0 packet list API &mdash; for SysEx destined for KORG hardware over BLE.</p>
+
+                <p>I built a <code>SysExSendStrategy</code> enum to make this controllable:</p>
+
+                <pre><code class="language-swift">enum SysExSendStrategy {
+    case legacyOnly  // MIDISend — safe, works with all devices
+    case auto        // MIDISendEventList for UMP-native, legacy otherwise
+    case umpOnly     // Force MIDISendEventList
+}</code></pre>
+
+                <p>The <code>.korgBLEMIDI</code> preset forces <code>.legacyOnly</code> until I can confirm that the new send path works with KORG hardware. It&rsquo;s a conservative choice, but &ldquo;definitely works&rdquo; beats &ldquo;sometimes works&rdquo; here.</p>
+
+                <h2>Lessons From the BLE Trenches</h2>
+
+                <p>Getting basic BLE MIDI working is easy. Running a sophisticated protocol like MIDI-CI Property Exchange on top of it &mdash; with its multi-chunk transactions, stateful sessions, and timing requirements &mdash; is a different problem entirely.</p>
+
+                <p>The KORG KeyStage actually does this in practice. Wireless, cable-free, full PE functionality. That&rsquo;s impressive and it&rsquo;s worth supporting. But the path to supporting it involved solving problems that probably weren&rsquo;t in the original BLE MIDI spec authors&rsquo; minds.</p>
+
+                <p>All of MIDI2Kit&rsquo;s BLE handling is heuristic. &ldquo;This sequence of things tends to work&rdquo; rather than &ldquo;this is correct per the spec.&rdquo; The warm-up trick, the serialized requests, the conservative timeouts &mdash; none of it is derived from first principles. It&rsquo;s what survived contact with reality.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Get Started with MIDI2Kit</h3>
+                    <p>The MIDI 2.0 library that handles BLE quirks, device-specific workarounds, and all the messy reality of real-world MIDI. Open source, MIT licensed.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Related Articles -->
+                <h2>More in This Series</h2>
+                <ul>
+                    <li><a href="2026-03-31-midi2-journey-06-midi2kit-birth.html">Part 6: Building MIDI2Kit &mdash; Architecture, Actors, and 16s &rarr; 144ms</a></li>
+                    <li><a href="2026-03-30-why-apple-cant-finish-midi2.html">Why Apple Can&rsquo;t Finish MIDI 2.0 (and Why KORG Can)</a></li>
+                    <li><a href="2026-03-29-macos15-midi2-modernization.html">MIDI2Kit Adds macOS 15+ API Support: UMP Endpoints, MIDI-CI v1.2, and Network MIDI 2.0</a></li>
+                    <li><a href="2026-03-08-introducing-midi2kit.html">Introducing MIDI2Kit &mdash; MIDI 2.0 for Swift</a></li>
+                </ul>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="/blog/">&larr; All Posts</a>
+                    <a href="2026-03-31-midi2-journey-06-midi2kit-birth.html">Part 6: Building MIDI2Kit &rarr;</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

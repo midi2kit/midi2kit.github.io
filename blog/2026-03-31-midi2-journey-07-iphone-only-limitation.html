@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Two-iPhone Problem: When MIDI-CI Hits the Bluetooth Wall | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="MIDI2Kit passes every test, MockDevice works perfectly — but real inter-app MIDI-CI on a single iPhone fails silently. Here's the physics problem behind it, and why you need two devices.">
+    <meta property="og:title" content="The Two-iPhone Problem: When MIDI-CI Hits the Bluetooth Wall">
+    <meta property="og:description" content="MIDI2Kit passes every test, MockDevice works perfectly — but real inter-app MIDI-CI on a single iPhone fails silently. Here's the physics problem behind it.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-31-midi2-journey-07-iphone-only-limitation.html">
+    <meta property="article:published_time" content="2026-03-31">
+    <meta property="article:series" content="MIDI2Kit Development Journey">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="The Two-iPhone Problem: When MIDI-CI Hits the Bluetooth Wall">
+    <meta name="twitter:description" content="MIDI2Kit passes every test. MockDevice works perfectly. But real inter-app MIDI-CI on a single iPhone fails silently. Here's why.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-31-midi2-journey-07-iphone-only-limitation.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "The Two-iPhone Problem: When MIDI-CI Hits the Bluetooth Wall",
+      "datePublished": "2026-03-31",
+      "dateModified": "2026-03-31",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-31-midi2-journey-07-iphone-only-limitation.html" },
+      "description": "MIDI2Kit passes every test, MockDevice works perfectly — but real inter-app MIDI-CI on a single iPhone fails silently. Here's the physics problem behind it, and why you need two devices.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "CreativeWorkSeries",
+        "name": "MIDI2Kit Development Journey",
+        "position": 7
+      }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 31, 2026</span>
+                <span class="post-tag">Series</span>
+                <span>Part 7 of 10</span>
+                <span>5 min read</span>
+            </div>
+            <h1>The Two-iPhone Problem: When MIDI-CI Hits the Bluetooth Wall</h1>
+            <p class="post-subtitle">The code works. Tests pass. MockDevice is perfect. So I grabbed my iPhone and fired up KORG Module Pro next to the MIDI2Kit app &mdash; and nothing happened. Fifteen seconds of silence. No Discovery Reply. Here&rsquo;s why one device isn&rsquo;t enough.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>It Works &mdash; Just Not Like That</h2>
+
+                <p>After getting MIDI-CI Discovery and Property Exchange working reliably in tests, the obvious next step was a real-world check: run the MIDI2Kit demo app (Initiator) and KORG Module Pro (Responder) on the same iPhone, side by side.</p>
+
+                <p>I sent a Discovery Inquiry over a CoreMIDI Virtual Port. Waited. Waited some more. Fifteen seconds later, still no Discovery Reply.</p>
+
+                <p>The code wasn&rsquo;t broken. The problem was more fundamental than that.</p>
+
+                <h2>Why Virtual Ports Don&rsquo;t Cut It for MIDI-CI</h2>
+
+                <p>CoreMIDI Virtual Ports are the standard mechanism for inter-app MIDI on iOS. They work great for MIDI 1.0 &mdash; notes, CCs, Program Changes all flow between apps on the same device without issue.</p>
+
+                <p>But KORG Module Pro&rsquo;s MIDI-CI implementation <strong>only activates on BLE MIDI interfaces</strong>. When a Discovery Inquiry arrives through a Virtual Port, Module Pro silently ignores it. This isn&rsquo;t a bug in MIDI2Kit. It&rsquo;s a deliberate design choice on KORG&rsquo;s side &mdash; they chose to bind their MIDI-CI stack to the Bluetooth transport layer, not to the virtual MIDI bus.</p>
+
+                <p>From a product perspective, it makes sense. KORG KeyStage is a Bluetooth MIDI keyboard. That&rsquo;s the intended use case. Inter-app MIDI-CI on a single device is probably not something KORG&rsquo;s dev team was optimizing for.</p>
+
+                <h2>The Bluetooth Physics Problem</h2>
+
+                <p>OK, so Module Pro needs a BLE MIDI connection. Can I create a BLE MIDI loopback on a single iPhone? Connect the device to itself over Bluetooth?</p>
+
+                <p>No. That&rsquo;s not how Bluetooth works.</p>
+
+                <p>BLE is a protocol for communicating with <em>external</em> devices. The radio has to transmit to something else and receive back. A device cannot be its own BLE peripheral and central simultaneously on the same radio in a meaningful way &mdash; and even if it could, the MIDI stack wouldn&rsquo;t route it as a loopback. BLE MIDI is simply not a local IPC mechanism.</p>
+
+                <p>So the situation looks like this:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Setup</th>
+                            <th>Transport</th>
+                            <th>MIDI-CI Works?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>iPhone A (MIDI2Kit) &harr; iPhone B (KORG Module Pro)</td>
+                            <td>BLE MIDI</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>iPhone A (MIDI2Kit) &harr; iPhone A (KORG Module Pro)</td>
+                            <td>Virtual Port</td>
+                            <td>No &mdash; Module Pro ignores it</td>
+                        </tr>
+                        <tr>
+                            <td>iPhone A (MIDI2Kit) &harr; iPhone A (KORG Module Pro)</td>
+                            <td>BLE MIDI</td>
+                            <td>No &mdash; physically impossible</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>There&rsquo;s no workaround. If you want to run MIDI-CI between MIDI2Kit and KORG Module Pro, you need two separate devices connected over Bluetooth.</p>
+
+                <h2>MIDI2Kit-to-MIDI2Kit Is a Different Story</h2>
+
+                <p>Here&rsquo;s the bright side: when <em>both</em> apps use MIDI2Kit, everything works on a single device.</p>
+
+                <p>MIDI2Kit&rsquo;s <code>CIManager</code> can be configured to watch for MIDI-CI messages on Virtual Ports as well. If both the Initiator app and the Responder app are built on MIDI2Kit, they can negotiate Discovery, run Property Exchange, and complete the full MIDI-CI flow over a Virtual Port &mdash; no hardware required.</p>
+
+                <p>The limitation is specific to third-party apps (like KORG Module Pro) that don&rsquo;t implement MIDI-CI on Virtual Ports. That&rsquo;s an ecosystem gap, not a protocol gap. The MIDI 2.0 specification doesn&rsquo;t say Virtual Port MIDI-CI is optional &mdash; that&rsquo;s just the choice KORG made for their app.</p>
+
+                <h2>Where This Gets Workable</h2>
+
+                <p>On macOS and iPadOS there are more transport options. USB MIDI doesn&rsquo;t have the same physical limitation as Bluetooth, and macOS 26.4 adds Network MIDI 2.0 over UDP.</p>
+
+                <p>I&rsquo;ve tested MIDI-CI with KORG KeyStage over USB. It works &mdash; Discovery comes in from KeyStage, MIDI2Kit responds as the Responder side. The catch is that KeyStage initiates the session, so KeyStage is the Initiator and MIDI2Kit (running on Mac) acts as Responder. If I want to send PE GET requests <em>to</em> KeyStage, I need MIDI2Kit to act as Initiator, which brings me back to the same Initiator-only constraint that appears in other parts of this series.</p>
+
+                <p>Still, USB and Network MIDI are real paths forward. BLE&rsquo;s limitations are specific to the wireless transport. Wired connections don&rsquo;t have this problem.</p>
+
+                <h2>What This Means in Practice</h2>
+
+                <p>If you&rsquo;re building an app that uses MIDI2Kit to talk MIDI-CI with KORG Module Pro, the user story right now requires two iPhones. That&rsquo;s a real UX barrier. I&rsquo;m not going to pretend it isn&rsquo;t.</p>
+
+                <p>The path to fixing it runs through KORG &mdash; if they enable Virtual Port MIDI-CI in a Module Pro update, the whole thing works on one device. There&rsquo;s nothing in the MIDI 2.0 spec that prevents it. It&rsquo;s purely a product decision.</p>
+
+                <p>Until then, the MIDI2Kit demo and integration test suite work fine with two devices. And for developers building hardware-adjacent apps (which is most of the MIDI use case anyway), two-device setups aren&rsquo;t unusual.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Get Started with MIDI2Kit</h3>
+                    <p>The MIDI 2.0 library that handles the messy reality of real-world devices. Open source, MIT licensed.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Related Articles -->
+                <h2>More in This Series</h2>
+                <ul>
+                    <li><a href="2026-03-31-midi2-journey-08-macos15-new-apis.html">Part 8: macOS 15 New APIs &mdash; 16 Experiments and One Blacklist</a></li>
+                    <li><a href="2026-03-30-why-apple-cant-finish-midi2.html">Why Apple Can&rsquo;t Finish MIDI 2.0 (and Why KORG Can)</a></li>
+                    <li><a href="2026-03-08-midi2-ecosystem-2026.html">MIDI 2.0 Ecosystem in 2026: Windows Support, New Hardware, and What It Means for Swift Developers</a></li>
+                </ul>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="/blog/">&larr; All Posts</a>
+                    <a href="2026-03-31-midi2-journey-08-macos15-new-apis.html">Part 8: macOS 15 New APIs &rarr;</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

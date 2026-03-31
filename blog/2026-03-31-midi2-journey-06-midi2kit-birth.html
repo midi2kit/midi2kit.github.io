@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building MIDI2Kit: Architecture, Actors, and a 99% Speed Improvement (Dev Journey, Part 6) | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="How I extracted 2,800 lines of MIDI-CI/PE code from an app into a proper Swift library. Four-layer architecture, Swift actors for concurrency, a mockable transport protocol, and connection time from 16 seconds down to 144ms.">
+    <meta property="og:title" content="Building MIDI2Kit: Architecture, Actors, and a 99% Speed Improvement (Dev Journey, Part 6)">
+    <meta property="og:description" content="How I extracted 2,800 lines of MIDI-CI/PE code into a proper Swift library with four-layer architecture, Swift actors, mockable transport, and 16s to 144ms connection time.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-31-midi2-journey-06-midi2kit-birth.html">
+    <meta property="article:published_time" content="2026-03-31">
+    <meta property="article:series" content="MIDI-CI Dev Journey">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Building MIDI2Kit: Architecture, Actors, and a 99% Speed Improvement">
+    <meta name="twitter:description" content="Extracting 2,800 lines of tangled MIDI-CI code into a clean Swift library. Four-layer architecture, actor-based concurrency, and 16s to 144ms.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-31-midi2-journey-06-midi2kit-birth.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Building MIDI2Kit: Architecture, Actors, and a 99% Speed Improvement (Dev Journey, Part 6)",
+      "datePublished": "2026-03-31",
+      "dateModified": "2026-03-31",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-31-midi2-journey-06-midi2kit-birth.html" },
+      "description": "How I extracted 2,800 lines of MIDI-CI/PE code from an app into a proper Swift library. Four-layer architecture, Swift actors for concurrency, a mockable transport protocol, and connection time from 16 seconds down to 144ms.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "Book",
+        "name": "MIDI-CI Dev Journey",
+        "numberOfPages": 10
+      }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 31, 2026</span>
+                <span class="post-tag">Series</span>
+                <span>Part 6 of 10</span>
+                <span>9 min read</span>
+            </div>
+            <h1>Building MIDI2Kit: Architecture, Actors, and a 99% Speed Improvement</h1>
+            <p class="post-subtitle">At some point the MIDI-CI and Property Exchange code living inside my app reached 2,800 lines and I knew it had to become a library. Here&rsquo;s how I designed the architecture, what I got right, and how connection time dropped from 16 seconds to 144ms.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>The Point Where App Code Becomes a Library</h2>
+
+                <p>SimpleMidiController &mdash; my app that talks to KORG hardware via MIDI-CI &mdash; had grown a monster. The MIDI-CI and Property Exchange implementation was 2,800 lines of Swift jammed directly into the app target. It worked, but it was untestable without physical hardware, impossible to evolve without breaking the app, and obviously something that other developers building MIDI apps would need too.</p>
+
+                <p>The decision to extract it into MIDI2Kit wasn&rsquo;t hard. The execution was a three-phase migration:</p>
+
+                <ol>
+                    <li><strong>Phase 1:</strong> Add MIDI2Kit as a dependency alongside the existing code. Run both in parallel.</li>
+                    <li><strong>Phase 2:</strong> Migrate the app&rsquo;s UI layer to use MIDI2Kit&rsquo;s API. Kill off the old code path.</li>
+                    <li><strong>Phase 3:</strong> Delete the 2,800 lines. Commit <code>b4ae272</code>.</li>
+                </ol>
+
+                <p>After Phase 3, <code>import CoreMIDI</code> no longer appeared anywhere in SimpleMidiController. The app had become a pure consumer of the library&rsquo;s API. That felt like the right outcome.</p>
+
+                <h2>Four-Layer Architecture</h2>
+
+                <p>The library is organized into four layers:</p>
+
+                <pre><code class="language-swift">MIDI2Kit       — CIManager, PEManager (high-level async API)
+MIDI2CI/PE     — Discovery, PE chunking, subscriptions
+MIDI2Transport — MIDITransport protocol, CoreMIDI/Mock/Loopback
+MIDI2Core      — UMP types, MUID, DeviceIdentity, Mcoded7</code></pre>
+
+                <p>Each layer only knows about the layers below it. The app only touches MIDI2Kit. CoreMIDI only appears in MIDI2Transport. This separation matters in practice: I can test the entire MIDI-CI and PE protocol stack without CoreMIDI, without hardware, without any external dependencies.</p>
+
+                <h2>The Transport Protocol: The Most Important Decision</h2>
+
+                <p>The single design choice that made everything else possible was making the transport layer a protocol rather than a concrete type:</p>
+
+                <pre><code class="language-swift">protocol MIDITransport: Sendable {
+    func send(_ data: [UInt8], to destination: MIDIDestination) throws
+    func makeReceiveStream() -> AsyncStream&lt;MIDIReceivedData&gt;
+}</code></pre>
+
+                <p>Three implementations of this protocol cover everything I need:</p>
+
+                <ul>
+                    <li><strong>CoreMIDITransport</strong> &mdash; production. Sends and receives on real MIDI ports.</li>
+                    <li><strong>MockMIDITransport</strong> &mdash; unit tests. Records all sends and receives for assertion.</li>
+                    <li><strong>LoopbackTransport</strong> &mdash; integration tests. Created in pairs: whatever one side sends, the other receives. This is what makes it possible to test Initiator and Responder in the same process.</li>
+                </ul>
+
+                <p>If I&rsquo;d started with CoreMIDI baked in, the test story would be much worse. Every test that exercises the protocol stack would need physical hardware. As it stands, the full Discovery &rarr; PE Capability Exchange &rarr; ResourceList &rarr; GET/SET flow runs in unit tests in milliseconds.</p>
+
+                <h2>Actor-Based Concurrency</h2>
+
+                <p>MIDI is inherently concurrent. Messages arrive at any time on a background thread. The app reads and updates state from the main thread. Multiple PE requests can be in flight simultaneously. This is exactly the problem Swift actors were designed for.</p>
+
+                <p><code>CIManager</code> and <code>PEManager</code> are both actors. No locks, no mutexes, no manually synchronized queues. The Swift concurrency runtime handles isolation:</p>
+
+                <pre><code class="language-swift">actor CIManager {
+    private var discoveredDevices: [MUID: DiscoveredDevice] = [:]
+
+    func startDiscovery() async { ... }
+    func handleDiscoveryReply(_ reply: DiscoveryReply) { ... }
+}</code></pre>
+
+                <p>For event delivery, I went with <code>AsyncStream</code> rather than delegates. No protocol to implement, no weak reference management, no threading gotchas. You just iterate:</p>
+
+                <pre><code class="language-swift">for await event in client.makeEventStream() {
+    switch event {
+    case .deviceDiscovered(let device):
+        // update UI
+    case .deviceLost(let muid):
+        // clean up
+    case .propertyChanged(let muid, let resource):
+        // refresh data
+    }
+}</code></pre>
+
+                <p>This integrates naturally with SwiftUI&rsquo;s <code>task</code> modifier. The stream runs as long as the view is alive, and cancels automatically when it disappears.</p>
+
+                <h2>Testing Without Hardware: MockDevice</h2>
+
+                <p>One of the biggest problems with the original app code was that the only way to test MIDI-CI behavior was to plug in a KORG keyboard. That&rsquo;s fine when you have the hardware, but it makes CI impossible, it makes regression testing slow, and it means tests can&rsquo;t run in automated pipelines.</p>
+
+                <p>The solution was a <code>MockDevice</code> that simulates a real MIDI-CI device over a <code>LoopbackTransport</code>:</p>
+
+                <pre><code class="language-swift">let (initiatorTransport, responderTransport) = LoopbackTransport.createPair()
+let mock = MockDevice(transport: responderTransport, preset: .korgModulePro)
+let client = MIDI2Client(transport: initiatorTransport)
+
+// This runs against a simulated KORG device, no hardware needed
+let info = try await client.getDeviceInfo(from: mock.muid)</code></pre>
+
+                <p>Five presets cover the devices I&rsquo;ve encountered: <code>.korgModulePro</code>, <code>.generic</code>, <code>.rolandStyle</code>, <code>.yamahaStyle</code>, and <code>.minimal</code>. The KORG preset faithfully reproduces all of KORG&rsquo;s quirks &mdash; the Mcoded7 non-usage, the string-typed <code>canGet</code>/<code>canSet</code>, the proprietary <code>X-ProgramEdit</code> resource structure. If my code handles the mock correctly, it handles the real hardware correctly.</p>
+
+                <h2>705 Tests Across 77 Suites</h2>
+
+                <p>The library launched with 602 tests on March 8, 2026. As of this writing it&rsquo;s at 705. The LoopbackTransport makes it practical to test the entire protocol flow end-to-end: Discovery through PE Capability Exchange through ResourceList through GET and SET, all in a unit test that runs in under a second.</p>
+
+                <p>The edge cases get their own tests: timeout behavior, NAK responses, chunk loss mid-transfer, malformed JSON in PE responses, Mcoded7 encoding errors, invalid MUID values. Each of these was discovered in production with real hardware. Now they&rsquo;re in the test suite so they stay fixed.</p>
+
+                <h2>16 Seconds to 144 Milliseconds</h2>
+
+                <p>The original SimpleMidiController code took about 16 seconds to complete the initial connection handshake with KORG hardware. That&rsquo;s the full sequence: BLE warm-up, MIDI-CI Discovery, PE Capability Exchange, ResourceList retrieval, then individual GET requests for each resource. All serial, all with conservative timeouts.</p>
+
+                <p>After migrating to MIDI2Kit and adding one optimization &mdash; when the device&rsquo;s <code>manufacturerName</code> identifies it as KORG, skip ResourceList entirely and go directly to <code>X-ParameterList</code> &mdash; that number dropped to 144ms.</p>
+
+                <p><strong>16.4 seconds &rarr; 144ms. 99.1% faster.</strong></p>
+
+                <p>The optimization is possible because I know KORG&rsquo;s resource layout from reverse engineering. The library applies it automatically; any app built on MIDI2Kit gets the benefit without knowing the detail exists. This is the advantage of centralizing device-specific knowledge in a library rather than spreading it across multiple apps.</p>
+
+                <h2>What &ldquo;The App No Longer Imports CoreMIDI&rdquo; Means</h2>
+
+                <p>The final state of SimpleMidiController has no <code>import CoreMIDI</code>, no <code>import CoreBluetooth</code> for MIDI purposes, and no direct SysEx construction. The app describes what it wants &mdash; &ldquo;get the program list from this device,&rdquo; &ldquo;set this parameter&rdquo; &mdash; and MIDI2Kit handles the protocol.</p>
+
+                <p>That&rsquo;s the goal for anyone else building a MIDI app on Apple platforms. You shouldn&rsquo;t need to know about MUID generation, Mcoded7 encoding, SysEx chunking, BLE warm-up sequences, or Apple&rsquo;s half-finished MIDI-CI participant. MIDI2Kit knows about those things so you don&rsquo;t have to.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Build on MIDI2Kit</h3>
+                    <p>A clean Swift API for MIDI 2.0, MIDI-CI, and Property Exchange. All the protocol complexity handled, all the device quirks encoded. Open source, MIT licensed.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Related Articles -->
+                <h2>More in This Series</h2>
+                <ul>
+                    <li><a href="2026-03-31-midi2-journey-05-ble-midi-mystery.html">Part 5: The Bizarre World of BLE MIDI</a></li>
+                    <li><a href="2026-03-30-why-apple-cant-finish-midi2.html">Why Apple Can&rsquo;t Finish MIDI 2.0 (and Why KORG Can)</a></li>
+                    <li><a href="2026-03-29-macos15-midi2-modernization.html">MIDI2Kit Adds macOS 15+ API Support: UMP Endpoints, MIDI-CI v1.2, and Network MIDI 2.0</a></li>
+                    <li><a href="2026-03-08-introducing-midi2kit.html">Introducing MIDI2Kit &mdash; MIDI 2.0 for Swift</a></li>
+                </ul>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="2026-03-31-midi2-journey-05-ble-midi-mystery.html">&larr; Part 5: The Bizarre World of BLE MIDI</a>
+                    <a href="/blog/">All Posts &rarr;</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

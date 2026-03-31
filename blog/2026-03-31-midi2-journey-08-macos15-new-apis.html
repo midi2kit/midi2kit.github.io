@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>macOS 15 New APIs: 16 Experiments, 1 Winner, and Why Apple Gets Blacklisted | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="macOS 15 quietly added undocumented CoreMIDI APIs in the SDK headers. MIDIUMPEndpointManager, MIDICIDeviceManager, MIDIUMPMutableEndpoint — I tested all 16 parameter combinations, found Apple's own CI node silently drops PE requests, and built a blacklist to keep apps from freezing.">
+    <meta property="og:title" content="macOS 15 New APIs: 16 Experiments, 1 Winner, and Why Apple Gets Blacklisted">
+    <meta property="og:description" content="macOS 15 quietly added undocumented CoreMIDI APIs. I tested all 16 parameter combinations for MIDIUMPMutableEndpoint, discovered Apple's own CI node silently times out on PE, and built a blacklist to protect apps.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-31-midi2-journey-08-macos15-new-apis.html">
+    <meta property="article:published_time" content="2026-03-31">
+    <meta property="article:series" content="MIDI2Kit Development Journey">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="macOS 15 New APIs: 16 Experiments, 1 Winner, and Why Apple Gets Blacklisted">
+    <meta name="twitter:description" content="macOS 15 added undocumented CoreMIDI APIs. 16 parameter combos tested, 1 works. Apple's own CI node silently hangs on PE requests. Here's the full story.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-31-midi2-journey-08-macos15-new-apis.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "macOS 15 New APIs: 16 Experiments, 1 Winner, and Why Apple Gets Blacklisted",
+      "datePublished": "2026-03-31",
+      "dateModified": "2026-03-31",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-31-midi2-journey-08-macos15-new-apis.html" },
+      "description": "macOS 15 quietly added undocumented CoreMIDI APIs in the SDK headers. MIDIUMPEndpointManager, MIDICIDeviceManager, MIDIUMPMutableEndpoint — I tested all 16 parameter combinations, found Apple's own CI node silently drops PE requests, and built a blacklist to keep apps from freezing.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "CreativeWorkSeries",
+        "name": "MIDI2Kit Development Journey",
+        "position": 8
+      }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 31, 2026</span>
+                <span class="post-tag">Series</span>
+                <span>Part 8 of 10</span>
+                <span>8 min read</span>
+            </div>
+            <h1>macOS 15 New APIs: 16 Experiments, 1 Winner, and Why Apple Gets Blacklisted</h1>
+            <p class="post-subtitle">Apple quietly dropped new CoreMIDI APIs in the macOS 15 SDK headers &mdash; no release notes, no WWDC session, no docs. <code>MIDIUMPEndpointManager</code>, <code>MIDICIDeviceManager</code>, <code>MIDIUMPMutableEndpoint</code>. I ran every combination I could think of and documented what actually works.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>Finding APIs That Don&rsquo;t Exist (Until You Read the Headers)</h2>
+
+                <p>I was auditing the macOS 15 CoreMIDI framework headers when I started noticing new class names. Not in the documentation. Not in any release notes. Not mentioned at WWDC. Just sitting there in the SDK headers like Apple forgot to announce them.</p>
+
+                <p>Three new APIs caught my attention:</p>
+
+                <ul>
+                    <li><strong>MIDIUMPEndpointManager</strong> &mdash; enumerates UMP endpoints (MIDI 2.0-native devices) with function block info, MIDI version, and manufacturer name</li>
+                    <li><strong>MIDICIDeviceManager</strong> &mdash; returns a list of MIDI-CI capable devices that CoreMIDI knows about</li>
+                    <li><strong>MIDIUMPMutableEndpoint</strong> &mdash; lets your app register itself as a UMP endpoint with custom function blocks</li>
+                </ul>
+
+                <p><code>MIDIUMPEndpointManager</code> and <code>MIDICIDeviceManager</code> were added in macOS 15 (Sequoia) but didn&rsquo;t really start working until macOS 26.4 (Tahoe). <code>MIDIUMPMutableEndpoint</code> has a longer story, which I&rsquo;ll get to.</p>
+
+                <h2>The Apple-Manufactured CI Participant That Breaks Everything</h2>
+
+                <p>When you call <code>MIDICIDeviceManager</code> on a fresh macOS install with no external MIDI devices connected, you still get results back. There&rsquo;s a participant in the list with the manufacturer SysEx ID <code>0x11 0x00 0x00</code>.</p>
+
+                <h3>What 0x11 0x00 0x00 Is</h3>
+
+                <p>SysEx manufacturer ID <code>0x11</code> in the North America block is assigned to Apple Inc. by the MIDI Manufacturers Association. So this isn&rsquo;t a phantom entry or a test artifact &mdash; <strong>macOS itself is participating in the MIDI-CI network as an Apple-manufactured device</strong>.</p>
+
+                <p>It makes conceptual sense. CoreMIDI has always had the IAC Driver (inter-app communication virtual bus) and Network MIDI sessions. This is the MIDI 2.0 version of that: the OS joining the CI network as a management node.</p>
+
+                <h3>It Responds to Discovery</h3>
+
+                <p>The MIDI-CI spec requires that any participant on the network respond to Discovery messages. Apple&rsquo;s OS node does this correctly. Send a Discovery Inquiry, get a Discovery Reply back. <code>MIDICIDeviceManager</code> lists it. Everything looks like a well-behaved CI participant.</p>
+
+                <h3>But It Silently Ignores All PE Requests</h3>
+
+                <p>Here&rsquo;s where things go wrong. Once you&rsquo;ve discovered this Apple CI participant, you naturally want to send it a Property Exchange GET request. Maybe query <code>DeviceInfo</code>, maybe <code>ResourceList</code>. Standard stuff.</p>
+
+                <pre><code class="language-swift">// What actually happens when you send PE to Apple's CI node:
+PE GET → DeviceInfo   → ... 5 seconds ... → timeout
+PE GET → ResourceList → ... 5 seconds ... → timeout</code></pre>
+
+                <p>No response. Not even a NAK. Just silence, then timeout.</p>
+
+                <p>A NAK would at least be useful &mdash; it would tell you &ldquo;this resource isn&rsquo;t supported.&rdquo; Total silence means you have no idea whether your request was received, rejected, or dropped somewhere in the stack. You just wait out the full timeout window. In audio/MIDI programming, a 5-second hang is catastrophic from a user experience standpoint. The app looks completely frozen.</p>
+
+                <h3>Three Theories for Why</h3>
+
+                <p>There&rsquo;s no official explanation. CoreMIDI is closed source. But here are the scenarios I think are plausible:</p>
+
+                <p><strong>Incomplete implementation.</strong> Apple shipped the Discovery Responder side but hasn&rsquo;t finished the PE Responder. Messages arrive internally but get dropped before any response is generated. The fact that there&rsquo;s zero response (not even an error path) suggests the PE handler just doesn&rsquo;t exist yet.</p>
+
+                <p><strong>Sandboxed for first-party apps only.</strong> PE gives direct read/write access to a device&rsquo;s internal state via JSON. That&rsquo;s powerful. Apple may be restricting PE access to processes with specific entitlements &mdash; Logic Pro, GarageBand, their own audio tools &mdash; and silently blocking everyone else. This would be very Apple-like behavior.</p>
+
+                <p><strong>Internal management node, not a public endpoint.</strong> macOS might need to exist as a CI participant for internal routing and device management reasons, but the PE interface was never meant to be publicly accessible. The Discovery response is a side effect of being on the network, not an invitation.</p>
+
+                <p>Any of these could be true. Without source access there&rsquo;s no way to verify.</p>
+
+                <h3>The Blacklist Fix</h3>
+
+                <p>Whatever the reason, the practical consequence is the same: every app built on MIDI2Kit would hang for 5+ seconds on every macOS launch while waiting for Apple&rsquo;s CI node to respond. That&rsquo;s unacceptable.</p>
+
+                <p>The fix is a manufacturer ID blacklist:</p>
+
+                <pre><code class="language-swift">// Don't send PE requests to Apple's CI participant
+private let blacklistedManufacturers: Set&lt;ManufacturerID&gt; = [
+    .init(0x11, 0x00, 0x00)  // Apple Inc.
+]</code></pre>
+
+                <p>MIDI2Kit watches <code>MIDICIDeviceManager</code>&rsquo;s device list for updates. When the list changes, the blacklist is re-evaluated dynamically. New Apple CI participants that appear get excluded automatically; if one disappears, the exclusion is removed. The list stays current without any manual intervention.</p>
+
+                <p>This is one of those workarounds that feels slightly absurd to ship &mdash; you&rsquo;re explicitly blacklisting the operating system you&rsquo;re running on &mdash; but the alternative is every user thinking your app is broken. If Apple ships a fully working PE Responder in a future macOS release, I&rsquo;ll remove the blacklist in a MIDI2Kit update.</p>
+
+                <h2>MIDIUMPMutableEndpoint: The 16-Combination Experiment</h2>
+
+                <p><code>MIDIUMPMutableEndpoint</code> lets your app register itself as a UMP endpoint, complete with custom function blocks. Your app appears to other devices as a proper MIDI 2.0 native device.</p>
+
+                <p>On macOS 15, it throws <code>Foundation._GenericObjCError code=0</code> for every single parameter combination. All 16 of them. Complete failure.</p>
+
+                <p>On macOS 26.4, the errors go away. Progress. But &ldquo;no error&rdquo; doesn&rsquo;t mean &ldquo;it works.&rdquo; I tested all 16 combinations of the relevant parameters and checked whether the function block actually showed up in <code>MIDIUMPEndpointManager</code>.</p>
+
+                <p>Result: <strong>1 out of 16 combinations works</strong>. The other 15 succeed without error but register zero function blocks. Silent failure.</p>
+
+                <p>The working combination:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Required Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>direction</code></td>
+                            <td><code>.bidirectional</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>maxSysEx8Streams</code></td>
+                            <td><code>0</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>midi1Info</code></td>
+                            <td><code>.notMIDI1</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>uiHint</code></td>
+                            <td><code>.unknown</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>markAsStatic</code></td>
+                            <td><code>true</code></td>
+                        </tr>
+                        <tr>
+                            <td>Timing</td>
+                            <td><code>register()</code> <em>before</em> <code>setEnabled(true)</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>That last row is the sneaky one. Call order matters. If you call <code>setEnabled(true)</code> before your function blocks are registered, they don&rsquo;t appear in the endpoint manager. No error, just a silently empty endpoint. I only caught this by diffing the successful and unsuccessful call sequences.</p>
+
+                <p>For now, MIDI2Kit documents this as the &ldquo;baseline configuration&rdquo; and uses it exclusively. Full function block customization will have to wait until Apple either fixes the silent failures or documents what&rsquo;s actually required.</p>
+
+                <h2>Smart SysEx Routing: Solving the KORG BLE Problem</h2>
+
+                <p>macOS 15+ exposes <code>MIDISendEventList</code> as a native UMP send path. For MIDI 2.0 devices, SysEx travels as Data 64 packets through this path, which is the right way to do it on modern hardware.</p>
+
+                <p>Except KORG BLE MIDI devices break when you use this path. Send Data 64 to a KORG BLE device and the data arrives corrupted or not at all. You have to use the legacy <code>MIDISend</code> API instead.</p>
+
+                <p>MIDI2Kit handles this with a send strategy enum:</p>
+
+                <pre><code class="language-swift">// Auto-detects the right send path based on device capability
+case .auto:
+    if destination.isUMPNative {
+        sendViaEventList(data)  // Data 64 via MIDISendEventList
+    } else {
+        sendViaLegacy(data)     // MIDISend fallback
+    }</code></pre>
+
+                <p>The <code>.korgBLEMIDI</code> preset forces <code>.legacyOnly</code> regardless of what the device reports. Erring on the safe side is the right call here &mdash; a working legacy path beats a broken native path every time.</p>
+
+                <h2>MIDI-CI v1.2 Support</h2>
+
+                <p>The macOS 15 timeframe also prompted adding MIDI-CI v1.2 support to MIDI2Kit. The key changes from v1.1:</p>
+
+                <ul>
+                    <li>PE Notify message type changed from <code>0x38</code> to <code>0x3F</code></li>
+                    <li>Management Messages (ACK/NAK for management operations) added</li>
+                    <li>CI version negotiation during Discovery</li>
+                </ul>
+
+                <p>All message builders in MIDI2Kit now accept a <code>ciVersion</code> parameter. The default is <code>.v1_1</code> for backward compatibility. When MIDI2Kit discovers a remote device, it reads the CI version from the Discovery Reply and switches automatically. You don&rsquo;t have to think about it.</p>
+
+                <h2>Network MIDI 2.0 on macOS 26.4</h2>
+
+                <p>The only CoreMIDI change that Apple actually documented in the macOS 26.4 release notes is Network MIDI 2.0 support over UDP. Everything else I&rsquo;ve described in this post? Not mentioned.</p>
+
+                <p>MIDI2Kit&rsquo;s receive path uses <code>MIDIInputPortCreateWithProtocol(._2_0)</code>, which should transparently handle Network MIDI 2.0 sessions. I haven&rsquo;t been able to verify this yet because I don&rsquo;t have a Network MIDI 2.0 peer device to test against. It&rsquo;s on the list.</p>
+
+                <h2>The macOS 26.4 Verdict: PARTIAL-GO</h2>
+
+                <p>Here&rsquo;s where things stand after all this testing:</p>
+
+                <p><strong>Working:</strong></p>
+                <ul>
+                    <li><code>MIDIUMPMutableEndpoint</code> with the baseline (bidirectional, no SysEx8, notMIDI1, unknown hint, static, register-then-enable)</li>
+                    <li><code>MIDICIDeviceManager</code> device detection (with Apple CI node excluded via blacklist)</li>
+                    <li><code>MIDIUMPEndpointManager</code> UMP endpoint enumeration</li>
+                    <li>MIDI-CI v1.2 version negotiation</li>
+                </ul>
+
+                <p><strong>Not yet verified:</strong></p>
+                <ul>
+                    <li>Full function block customization (15 of 16 parameter combinations fail silently)</li>
+                    <li>Data 64 SysEx reception via UMP receive path</li>
+                    <li>PE over a Network MIDI 2.0 session</li>
+                </ul>
+
+                <p>All the new macOS 15+ APIs in MIDI2Kit are wrapped in <code>@available</code> guards. If you&rsquo;re targeting macOS 14, none of this code even compiles in &mdash; legacy CoreMIDI APIs handle everything, and they work fine. The new path is strictly additive.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Get Started with MIDI2Kit</h3>
+                    <p>The MIDI 2.0 library that handles the messy reality of real-world devices. Open source, MIT licensed.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Related Articles -->
+                <h2>More in This Series</h2>
+                <ul>
+                    <li><a href="2026-03-31-midi2-journey-07-iphone-only-limitation.html">Part 7: The Two-iPhone Problem &mdash; When MIDI-CI Hits the Bluetooth Wall</a></li>
+                    <li><a href="2026-03-30-why-apple-cant-finish-midi2.html">Why Apple Can&rsquo;t Finish MIDI 2.0 (and Why KORG Can)</a></li>
+                    <li><a href="2026-03-29-macos15-midi2-modernization.html">MIDI2Kit Adds macOS 15+ API Support: UMP Endpoints, MIDI-CI v1.2, and Network MIDI 2.0</a></li>
+                </ul>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="2026-03-31-midi2-journey-07-iphone-only-limitation.html">&larr; Part 7: The Two-iPhone Problem</a>
+                    <a href="/blog/">All Posts &rarr;</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

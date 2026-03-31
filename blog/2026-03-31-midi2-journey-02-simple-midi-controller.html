@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleMidiController: When the First App Breaks | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="I hand-wrote a full MIDI-CI and Property Exchange stack — 7 files, 2,800 lines — directly inside a simple iOS controller app. It worked, then it broke in four different ways. Here's every bug I hit and what it taught me about MIDI 2.0 in the real world.">
+    <meta property="og:title" content="SimpleMidiController: When the First App Breaks">
+    <meta property="og:description" content="I hand-wrote a MIDI-CI + Property Exchange stack directly inside an iOS app. It worked, then broke in four different ways. Here's every bug.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-31-midi2-journey-02-simple-midi-controller.html">
+    <meta property="article:published_time" content="2026-03-31">
+    <meta property="article:series" content="Building MIDI2Kit: A Development Journey">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SimpleMidiController: When the First App Breaks">
+    <meta name="twitter:description" content="Hand-writing a MIDI-CI stack inside an iOS app — what worked, what broke, and the four bugs that convinced me to build a proper library.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-31-midi2-journey-02-simple-midi-controller.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "SimpleMidiController: When the First App Breaks",
+      "datePublished": "2026-03-31",
+      "dateModified": "2026-03-31",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-31-midi2-journey-02-simple-midi-controller.html" },
+      "description": "I hand-wrote a full MIDI-CI and Property Exchange stack — 7 files, 2,800 lines — directly inside a simple iOS controller app. It worked, then it broke in four different ways. Here's every bug I hit and what it taught me about MIDI 2.0 in the real world.",
+      "isPartOf": {
+        "@type": "CreativeWorkSeries",
+        "name": "Building MIDI2Kit: A Development Journey",
+        "position": 2
+      },
+      "inLanguage": "en"
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Series Nav */
+        .series-nav {
+            margin-top: 56px;
+            padding: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .series-nav-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .series-nav-links {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .series-nav-link {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            text-decoration: none;
+            max-width: 48%;
+        }
+
+        .series-nav-link.next {
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .series-nav-link-label {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .series-nav-link-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-blue);
+            transition: color 0.2s;
+        }
+
+        .series-nav-link:hover .series-nav-link-title {
+            color: var(--text-primary);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+            .series-nav-links { flex-direction: column; }
+            .series-nav-link.next { text-align: left; margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 31, 2026</span>
+                <span class="post-tag">Series</span>
+                <span>Part 2 of 10</span>
+                <span>8 min read</span>
+            </div>
+            <h1>SimpleMidiController: When the First App Breaks</h1>
+            <p class="post-subtitle">I hand-wrote a full MIDI-CI and Property Exchange stack inside a small iOS controller app. It worked. Then it broke in four completely different ways &mdash; and each bug taught me something the spec never mentions.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>The App I Set Out to Build</h2>
+
+                <p>Three screens. That was the plan.</p>
+
+                <ul>
+                    <li><strong>Sliders page</strong> &mdash; six sliders mapped to CC1 (modulation), CC7 (volume), CC10 (pan), and others</li>
+                    <li><strong>Program Change page</strong> &mdash; bank select plus PC 0&ndash;127</li>
+                    <li><strong>XY Pad</strong> &mdash; two 2-axis pads, each axis assignable to any CC</li>
+                </ul>
+
+                <p>All of that is pure MIDI 1.0. SwiftUI for the interface, CoreMIDI for sending bytes, an afternoon to write. Nothing complicated. This was supposed to be a utility app, not a research project.</p>
+
+                <h2>Then I Plugged In a KORG KeyStage</h2>
+
+                <p>The KeyStage supports MIDI 2.0 Property Exchange. When you connect it to an app, it sends out PE queries over MIDI-CI &mdash; asking the app for its sound name list, its parameter structure, anything the app is willing to share. If the app responds correctly, the KeyStage LCD shows those sound names. The hardware knobs display parameter names. It&rsquo;s exactly the kind of integration that makes MIDI 2.0 feel genuinely useful rather than theoretical.</p>
+
+                <p>I thought: &ldquo;That would be really useful. How hard is it to respond to those queries?&rdquo;</p>
+
+                <p>Reader: it was not easy.</p>
+
+                <h2>Building the MIDI-CI Stack by Hand</h2>
+
+                <p>Property Exchange doesn&rsquo;t stand alone. Before two devices can exchange PE data, they have to complete a MIDI-CI (Capability Inquiry) handshake. It&rsquo;s a multi-stage discovery and negotiation protocol that looks roughly like this:</p>
+
+                <ol>
+                    <li><strong>Discovery</strong> &mdash; broadcast a CI Discovery Inquiry message, collect responses, extract each device&rsquo;s MUID (a unique 28-bit device identifier)</li>
+                    <li><strong>PE Capability Inquiry</strong> &mdash; confirm that the remote device actually supports Property Exchange</li>
+                    <li><strong>ResourceList request</strong> &mdash; ask the device what resources (data categories) it exposes</li>
+                    <li><strong>Individual resource GETs</strong> &mdash; fetch DeviceInfo, ProgramList, parameter mappings, and anything else on the list</li>
+                </ol>
+
+                <p>Each step involves constructing SysEx messages to specific formats, handling chunked responses (PE data can be split across multiple messages), managing per-request timeouts, and tracking request IDs (7-bit values, 0&ndash;127) across concurrent transactions.</p>
+
+                <p>I wrote all of it by hand. Seven files, roughly 2,800 lines of Swift.</p>
+
+                <p>When it was done, it worked. KORG Module Pro returned its sound name list. The KeyStage LCD displayed the names. Knobs showed parameter labels. For about a week, I felt pretty good about this.</p>
+
+                <h2>Where It Started Breaking</h2>
+
+                <h3>Bug 1: SysEx Fragments Arriving Out of Order</h3>
+
+                <p>CoreMIDI&rsquo;s <code>MIDIPacketList</code> can contain multiple packets in a single callback. My first implementation spawned a new <code>Task</code> for each individual packet. Swift&rsquo;s structured concurrency doesn&rsquo;t guarantee execution order across independent tasks, so SysEx fragments from chunked PE responses were sometimes being processed out of sequence.</p>
+
+                <pre><code class="language-swift">// The broken version — a new Task per packet
+for packet in packetList {
+    Task { await assembler.process(packet) }
+}
+
+// The fix — process the whole list in one await
+await assembler.processPacketList(packetList)</code></pre>
+
+                <p>The fix seems obvious in retrospect. At the time it took a while to figure out why reassembled responses were occasionally corrupt.</p>
+
+                <h3>Bug 2: MUID Regenerated on Every Discovery</h3>
+
+                <p>The MUID is the identifier your app uses to represent itself in MIDI-CI conversations. My first version generated a fresh random MUID every time <code>startDiscovery()</code> was called.</p>
+
+                <p>The problem: if discovery ran while a PE transaction was in progress, responses from the remote device would be addressed to the old MUID, which no longer existed. Transactions would silently fail.</p>
+
+                <p>Fix: generate the MUID once at initialization and keep it for the lifetime of the session.</p>
+
+                <h3>Bug 3: iPad-Specific Data Corruption</h3>
+
+                <p>This one I never actually solved.</p>
+
+                <p>On iPad (specifically iPad14,10 running iOS 18.6.2), receiving a chunked ResourceList response from KORG Module Pro caused bytes 338&ndash;342 of the second chunk to be replaced with garbage. Every single time. 100% reproduction rate. The exact same code running on iPhone worked perfectly.</p>
+
+                <p>I spent a long time trying to figure out whether this was a CoreMIDI BLE driver bug, a KORG Module Pro bug specific to iPad, or something about how the BLE MIDI framing worked on that hardware. I never got a clean answer. Eventually I classified it as a known limitation and added a note recommending iPhone over iPad. Not satisfying, but it let me ship.</p>
+
+                <h3>Bug 4: Request IDs Leaking Until Exhaustion</h3>
+
+                <p>PE request IDs are 7 bits: 128 possible values, 0&ndash;127. When a transaction completes successfully, the ID gets recycled. When a transaction fails &mdash; timeout, NAK, silent drop &mdash; my implementation wasn&rsquo;t always cleaning up the transaction object, so the ID stayed reserved.</p>
+
+                <p>Under normal use this wasn&rsquo;t a problem. After extended sessions with lots of failed or retried transactions, the pool would slowly drain until no new requests could be sent. The app would silently stop working without any obvious error.</p>
+
+                <h3>Bug 5 (Not Really a Bug, More a Disaster): Concurrency Model</h3>
+
+                <p>I&rsquo;d built <code>MIDICIManager</code> with a mix of <code>DispatchQueue</code> for CoreMIDI callbacks and <code>@MainActor</code> for UI updates. In Swift 5, this worked fine. When I turned on Swift 6 strict concurrency checking, I got a wave of data race warnings &mdash; the kind that aren&rsquo;t just style issues but represent real potential for undefined behavior.</p>
+
+                <p>Fixing this properly would require rethinking the entire concurrency architecture, not just applying Band-Aids.</p>
+
+                <h2>The Moment I Realized This Was a Library Problem</h2>
+
+                <p>By January 2026, I had 2,800 lines of MIDI-CI and PE code baked directly into a controller app. No tests. No documentation. Logic that was tightly coupled to the app&rsquo;s internal state. Every time I fixed a bug I&rsquo;d think: &ldquo;this isn&rsquo;t an app bug, this is a protocol implementation bug.&rdquo;</p>
+
+                <p>On January 16th I sat down and wrote out what the actual problem was:</p>
+
+                <blockquote>
+                    <p>SimpleMIDIController contains CoreMIDI direct access, SysEx assembly, MIDI-CI Discovery, and Property Exchange transaction/chunk/timeout management all in the same codebase. It cannot be reused, tested, or maintained in this state.</p>
+                </blockquote>
+
+                <p>That was the start of MIDI2Kit.</p>
+
+                <p>The bugs themselves weren&rsquo;t that hard to fix individually. The problem was structural: protocol implementation does not belong inside an app. It belongs in a library with a proper API surface, with tests that can verify each layer in isolation, with the concurrency model thought through from the start rather than bolted on after the fact.</p>
+
+                <p>In the next post I&rsquo;ll walk through what that redesign looked like &mdash; the decisions that went into MIDI2Kit&rsquo;s architecture and how it handles the problems I hit with the hand-rolled approach.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Get Started with MIDI2Kit</h3>
+                    <p>The MIDI 2.0 library that handles the messy reality of real-world devices. Open source, MIT licensed.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Series Navigation -->
+                <div class="series-nav">
+                    <div class="series-nav-label">Building MIDI2Kit: A Development Journey</div>
+                    <div class="series-nav-links">
+                        <a href="2026-03-31-midi2-journey-01-introduction.html" class="series-nav-link prev">
+                            <span class="series-nav-link-label">&larr; Part 1 of 10</span>
+                            <span class="series-nav-link-title">I Just Wanted a MIDI Controller App</span>
+                        </a>
+                        <span style="color: var(--text-tertiary); font-size: 14px; display: flex; align-items: center;">Part 3 coming soon</span>
+                    </div>
+                </div>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="/blog/">&larr; All Posts</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

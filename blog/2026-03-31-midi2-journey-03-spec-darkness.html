@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Darkness Inside the MIDI 2.0 Spec | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="The MIDI 2.0 spec looks clean on paper. The reality of implementing it against real hardware is something else entirely — undocumented behaviors, type mismatches, and Apple's mystery CI participant that silently eats your requests.">
+    <meta property="og:title" content="The Darkness Inside the MIDI 2.0 Spec">
+    <meta property="og:description" content="The MIDI 2.0 spec looks clean on paper. The reality of implementing it against real hardware is something else entirely.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-31-midi2-journey-03-spec-darkness.html">
+    <meta property="article:published_time" content="2026-03-31">
+    <meta property="article:series" content="Building MIDI2Kit">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="The Darkness Inside the MIDI 2.0 Spec">
+    <meta name="twitter:description" content="The MIDI 2.0 spec looks clean on paper. The reality of implementing it against real hardware is something else entirely.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-31-midi2-journey-03-spec-darkness.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "The Darkness Inside the MIDI 2.0 Spec",
+      "datePublished": "2026-03-31",
+      "dateModified": "2026-03-31",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-31-midi2-journey-03-spec-darkness.html" },
+      "description": "The MIDI 2.0 spec looks clean on paper. The reality of implementing it against real hardware is something else entirely — undocumented behaviors, type mismatches, and Apple's mystery CI participant that silently eats your requests.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "BlogSeries",
+        "name": "Building MIDI2Kit",
+        "position": 3
+      }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Series Nav */
+        .series-nav {
+            margin-top: 56px;
+            padding: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .series-nav-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .series-nav-links {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .series-nav-link {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            text-decoration: none;
+            flex: 1;
+        }
+
+        .series-nav-link.next {
+            text-align: right;
+        }
+
+        .series-nav-direction {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .series-nav-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-blue-light);
+            transition: color 0.2s;
+        }
+
+        .series-nav-link:hover .series-nav-title {
+            color: var(--text-primary);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+            .series-nav-links { flex-direction: column; }
+            .series-nav-link.next { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 31, 2026</span>
+                <span class="post-tag">Series</span>
+                <span>Part 3 of 10</span>
+                <span>8 min read</span>
+            </div>
+            <h1>The Darkness Inside the MIDI 2.0 Spec</h1>
+            <p class="post-subtitle">The MIDI 2.0 specification is well-written and thorough. The problem isn&rsquo;t what&rsquo;s in it &mdash; it&rsquo;s everything that isn&rsquo;t. A developer&rsquo;s account of undocumented behaviors, type mismatches, and Apple&rsquo;s mystery CI participant that silently consumes your requests.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>The Spec Is Beautiful. Reality Is Chaos.</h2>
+
+                <p>I want to be fair to the people who wrote the MIDI 2.0 specification. The documents published by MMA and AMEI are genuinely good. UMP packet structure, MIDI-CI message formats, Property Exchange request/response flows &mdash; it&rsquo;s all there, clearly organized, with diagrams. You can sit down and read through it and come away feeling like you understand the system.</p>
+
+                <p>The problem is how much the spec simply doesn&rsquo;t cover.</p>
+
+                <p>I found this out the hard way while building MIDI2Kit. Every time I thought I had a solid implementation, some real device would do something the spec didn&rsquo;t mention &mdash; and suddenly I was debugging protocol behavior that had no documentation to reference. Let me walk through the specific places where the spec and reality diverge.</p>
+
+                <h2>The Encoding Problem: KORG Ignores Mcoded7</h2>
+
+                <p>Property Exchange data travels over SysEx. SysEx has a 7-bit constraint &mdash; the high bit of every byte must be zero. So when you need to send arbitrary 8-bit data through a SysEx channel, you have to encode it first. The spec specifies an encoding called <strong>Mcoded7</strong> for exactly this purpose.</p>
+
+                <p>KORG&rsquo;s implementation sends raw UTF-8 without any Mcoded7 encoding.</p>
+
+                <p>If you faithfully implement the spec and run incoming KORG data through your Mcoded7 decoder, the result is garbage. If you skip the decoder and treat it as plain UTF-8, it works fine. The KORG device is technically speaking outside the spec, but it&rsquo;s a real shipping product and you have to handle it. This is the first lesson of real-world MIDI 2.0 development: working code beats written spec.</p>
+
+                <h2>The Type Mismatch That Silently Drops Data</h2>
+
+                <p>This one is subtle enough to burn a lot of time before you notice it.</p>
+
+                <p>In the Property Exchange ResourceList response, each resource entry has <code>canGet</code> and <code>canSet</code> fields. The spec says these are booleans. Swift&rsquo;s <code>Codable</code> is happy to decode booleans. Everything looks fine.</p>
+
+                <p>KORG sends strings instead:</p>
+
+<pre><code class="language-json">// What the spec says
+{"resource": "DeviceInfo", "canGet": true, "canSet": false}
+
+// What KORG actually sends
+{"resource": "DeviceInfo", "canGet": "full", "canSet": "none"}</code></pre>
+
+                <p>The insidious part: <code>Codable</code> doesn&rsquo;t throw an error when it can&rsquo;t decode a field into the expected type. It just skips the entire object. KORG has two proprietary resources in their ResourceList, and both of them were silently disappearing &mdash; no crash, no warning, no indication anything was wrong. I only noticed because I was wondering why those resources never showed up.</p>
+
+                <p>The fix was a custom <code>CanValue</code> type that accepts either a boolean or a string:</p>
+
+<pre><code class="language-swift">enum CanValue: Decodable {
+    case bool(Bool)
+    case string(String)
+
+    var isEnabled: Bool {
+        switch self {
+        case .bool(let v): return v
+        case .string(let s): return s == "full"
+        }
+    }
+}</code></pre>
+
+                <p>Not a complicated fix, but you have to know it&rsquo;s needed first. And the spec gives you no reason to expect it.</p>
+
+                <h2>The Schema Field Type Mismatch</h2>
+
+                <p>While I was in that neighborhood, I found another one. The <code>schema</code> field in a ResourceList entry is documented as a string in the spec &mdash; a reference to a schema name. KORG sends an inline JSON object instead. Same field name, completely different type.</p>
+
+                <p>At this point I had stopped being surprised.</p>
+
+                <h2>Request ID Exhaustion</h2>
+
+                <p>Property Exchange request IDs are 7-bit values, so you get 128 of them per device. The spec says you can have up to 128 simultaneous in-flight requests. What it doesn&rsquo;t say is anything about when those IDs get released.</p>
+
+                <p>In practice: when a PE transaction fails &mdash; no NAK comes back, timeout fires, your request object gets cleaned up &mdash; there are situations where the ID doesn&rsquo;t actually get recycled. Run enough failed transactions and you hit 128 outstanding IDs. New requests fail immediately with &ldquo;no available request IDs,&rdquo; and you have no way to tell from the outside whether the device is broken or your ID pool is exhausted.</p>
+
+                <p>The spec doesn&rsquo;t define when IDs should be released. It doesn&rsquo;t define what to do when they run out. Implementers are left to figure this out on their own, which means every implementation handles it differently, which means the behavior you observe varies by device.</p>
+
+                <h2>PE Notify: The Subtype That Changed Between Versions</h2>
+
+                <p>MIDI-CI v1.1 used subtype <code>0x38</code> for PE Notify messages. MIDI-CI v1.2 changed it to <code>0x3F</code>.</p>
+
+                <p>These are the same message doing the same thing &mdash; the subtype just changed. If you send a v1.2 Notify (<code>0x3F</code>) to a device that only understands v1.1, it ignores it. If you send a v1.1 Notify (<code>0x38</code>) to a v1.2 device, it might also ignore it.</p>
+
+                <p>The right approach is to check which MIDI-CI version each device advertised during Discovery, then use the correct subtype per device. This is manageable but tedious, and it&rsquo;s the kind of implementation detail that&rsquo;s easy to miss if you&rsquo;re only testing against modern hardware.</p>
+
+                <h2>Apple&rsquo;s Undocumented CI Participant</h2>
+
+                <p>macOS 15 added <code>MIDIUMPEndpointManager</code> and <code>MIDICIDeviceManager</code>. These classes exist in the SDK headers. They don&rsquo;t appear in any WWDC session. The documentation is minimal at best.</p>
+
+                <p>When you use <code>MIDICIDeviceManager</code> to enumerate discovered CI participants, one of them carries Apple&rsquo;s manufacturer SysEx ID (<code>0x11 0x00 0x00</code>). It responds to Discovery broadcasts &mdash; the protocol handshake works. But send it any Property Exchange request and it goes silent. No response, no error, no NAK. You just wait for the timeout.</p>
+
+                <p>There&rsquo;s no documentation explaining this behavior. I only understood what was happening after enough timeouts to recognize the pattern. The solution was to blacklist this participant &mdash; detect the Apple manufacturer ID and skip PE requests entirely. But I wouldn&rsquo;t have known to do that without observing it on real hardware first.</p>
+
+                <blockquote>
+                    <p>The Apple CI participant responds to Discovery but ignores all PE requests. It appears to be an internal system component that&rsquo;s registered on the CI bus but not intended for third-party interaction.</p>
+                </blockquote>
+
+                <h2>The Real Specification Is Running Code</h2>
+
+                <p>After enough of these encounters, I arrived at a conclusion that&rsquo;s a bit uncomfortable: the authoritative specification for MIDI 2.0 behavior isn&rsquo;t the published document. It&rsquo;s the aggregate behavior of shipping devices.</p>
+
+                <p>The spec represents what the protocol is supposed to do. But interoperability &mdash; the actual goal of any protocol &mdash; is defined by what real implementations do. When KORG ships a device that ignores Mcoded7, the practical spec for &ldquo;how to talk to KORG devices&rdquo; now includes &ldquo;don&rsquo;t use Mcoded7.&rdquo; That fact lives nowhere except in the heads of people who have debugged it.</p>
+
+                <p>This is what MIDI2Kit is trying to address. Every quirk, every undocumented behavior, every type mismatch gets encoded into the library so that the next developer doesn&rsquo;t have to rediscover it. The spec is where you start. The library is where you end up.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Get Started with MIDI2Kit</h3>
+                    <p>The MIDI 2.0 library that handles the messy reality of real-world devices. Open source, MIT licensed.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Series Navigation -->
+                <div class="series-nav">
+                    <div class="series-nav-label">Building MIDI2Kit &mdash; Part 3 of 10</div>
+                    <div class="series-nav-links">
+                        <a href="2026-03-30-why-apple-cant-finish-midi2.html" class="series-nav-link prev">
+                            <span class="series-nav-direction">&larr; Previous</span>
+                            <span class="series-nav-title">Why Apple Can&rsquo;t Finish MIDI 2.0 (and Why KORG Can)</span>
+                        </a>
+                        <a href="2026-03-31-midi2-journey-04-korg-reverse-engineering.html" class="series-nav-link next">
+                            <span class="series-nav-direction">Next &rarr;</span>
+                            <span class="series-nav-title">Reverse Engineering KORG&rsquo;s MIDI 2.0 Protocol</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="/blog/">&larr; All Posts</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

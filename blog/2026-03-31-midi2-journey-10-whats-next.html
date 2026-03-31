@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What&rsquo;s Next for MIDI2Kit | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="Where MIDI 2.0 stands in March 2026: OS support is finally in place on both platforms, KORG hardware works, but cross-vendor interop is still a dream. Here's what MIDI2Kit still needs — and why building a small app first was the right way to get here.">
+    <meta property="og:title" content="What&rsquo;s Next for MIDI2Kit">
+    <meta property="og:description" content="The MIDI 2.0 ecosystem status in 2026, what MIDI2Kit still needs, and why the path from a small app to a full library was worth it.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-31-midi2-journey-10-whats-next.html">
+    <meta property="article:published_time" content="2026-03-31">
+    <meta property="article:series" content="Building MIDI2Kit: A Development Journey">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="What&rsquo;s Next for MIDI2Kit">
+    <meta name="twitter:description" content="Where the MIDI 2.0 ecosystem stands in 2026, what remains unfinished, and what comes next for MIDI2Kit.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-31-midi2-journey-10-whats-next.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "What's Next for MIDI2Kit",
+      "datePublished": "2026-03-31",
+      "dateModified": "2026-03-31",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-31-midi2-journey-10-whats-next.html" },
+      "description": "Where MIDI 2.0 stands in March 2026: OS support is finally in place on both platforms, KORG hardware works, but cross-vendor interop is still a dream. Here's what MIDI2Kit still needs — and why building a small app first was the right way to get here.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "BlogPosting",
+        "name": "Building MIDI2Kit: A Development Journey",
+        "position": 10
+      }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 31, 2026</span>
+                <span class="post-tag">Series</span>
+                <span>Part 10 of 10</span>
+                <span>8 min read</span>
+            </div>
+            <h1>What&rsquo;s Next</h1>
+            <p class="post-subtitle">Where MIDI 2.0 stands in early 2026, what MIDI2Kit still needs, and why the path from a 2,800-line controller app to a proper library turned out to be the right approach all along.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>Where the MIDI 2.0 Ecosystem Stands Right Now</h2>
+
+                <p>It&rsquo;s March 2026. MIDI 2.0 has been in the works for years. Here&rsquo;s an honest snapshot of where things actually are.</p>
+
+                <p><strong>Hardware</strong> is making progress. KORG Keystage, Roland A-88MKII, StudioLogic SL series, Rhodes MK8 &mdash; the list of MIDI 2.0 keyboards is growing. Still niche, but it&rsquo;s no longer a single device you can only find in press releases.</p>
+
+                <p><strong>OS support</strong> finally spans both platforms. Apple has had UMP transport since macOS 11 / iOS 14 back in 2020. Windows MIDI Services went GA in February 2026. For the first time, both major platforms have OS-level MIDI 2.0 infrastructure in place. That&rsquo;s a real milestone.</p>
+
+                <p><strong>DAWs</strong> are catching up unevenly. Cubase 14 handles MIDI 2.0 &rarr; VST3 conversion. Logic Pro has Property Exchange auto-mapping. Studio One has MIDI-CI Discovery. Ableton and FL Studio haven&rsquo;t shipped anything yet.</p>
+
+                <p><strong>Libraries</strong>: as far as I know, MIDI2Kit is the only open-source Swift library with full MIDI-CI and Property Exchange support. That&rsquo;s not a brag &mdash; it&rsquo;s a gap in the ecosystem that someone needed to fill.</p>
+
+                <h2>What MIDI2Kit Still Needs</h2>
+
+                <h3>More Test Hardware</h3>
+
+                <p>Right now, everything is verified against KORG. That&rsquo;s it. Roland, Yamaha, Native Instruments &mdash; I don&rsquo;t have their hardware, and I genuinely don&rsquo;t know how their MIDI 2.0 implementations differ.</p>
+
+                <p>The library has <code>MockDevice</code> presets for <code>.rolandStyle</code> and <code>.yamahaStyle</code>, but I built those from guesswork and spec reading. They haven&rsquo;t been validated against real devices. Every manufacturer has quirks; I&rsquo;ve only found KORG&rsquo;s. The spec interpretation differences I uncovered while building MIDI2Kit &mdash; Mcoded7 encoding, boolean vs. string types, timing constraints &mdash; are almost certainly not unique to KORG.</p>
+
+                <h3>Network MIDI 2.0 in the Real World</h3>
+
+                <p>macOS 26.4 added Network MIDI 2.0 support. The MIDI2Kit code should handle it &mdash; the architecture doesn&rsquo;t treat network sessions differently &mdash; but I haven&rsquo;t run Property Exchange over an actual network session yet. That test still needs to happen.</p>
+
+                <h3>Documentation</h3>
+
+                <p>DocC-based API docs and an interactive tutorial are in progress. This isn&rsquo;t optional &mdash; a library without documentation is effectively inaccessible to anyone who didn&rsquo;t build it. I want MIDI2Kit to be the thing you reach for when you need MIDI 2.0 in Swift, not the thing you look at once and give up on because nothing is explained.</p>
+
+                <h3>Sample Apps</h3>
+
+                <p>Two reference implementations are planned: a MIDI 2.0 Device Explorer for iOS, and a MIDI Monitor for macOS. Beyond just showing the library working, these would be the kind of tools I wish had existed when I started this whole thing.</p>
+
+                <h2>What MIDI2Kit Is Actually For</h2>
+
+                <p>CoreMIDI gives you a pipe. You send bytes in, bytes come out.</p>
+
+                <p>The layer above that &mdash; MIDI-CI Discovery coordination, Property Exchange transaction management, chunk reassembly, timeout handling, manufacturer-specific workarounds &mdash; CoreMIDI doesn&rsquo;t provide any of that. Every app that wants to do anything serious with MIDI 2.0 has to build it themselves.</p>
+
+                <p>I know exactly what that costs because I did it in SimpleMidiController: 2,800 lines of code to handle one KORG keyboard. That&rsquo;s not a reasonable tax for every developer who wants to use MIDI 2.0.</p>
+
+                <p>MIDI2Kit pulls all of that into a library. The manufacturer quirks are in one place. The workarounds benefit every app that uses it. Nobody has to rediscover that PE Notify echo-back freezes the KORG LCD.</p>
+
+                <h2>Honest Thoughts on Solo Development at This Scale</h2>
+
+                <p>I&rsquo;ll be direct: building a MIDI 2.0 library as a solo indie developer was kind of unreasonable. One KORG keyboard for testing. Paid spec documents. Apple&rsquo;s undocumented APIs that you can only probe by writing code and running it on real hardware. BLE MIDI bugs in a closed-source stack. No access to the informal knowledge that MMA member companies share among themselves.</p>
+
+                <p>But I also think I couldn&rsquo;t have built this any other way. If I&rsquo;d started by trying to implement MIDI-CI from the spec, I&rsquo;d have gotten something theoretically correct that didn&rsquo;t work against any real device. The problems that made MIDI2Kit necessary &mdash; the timing constraints, the proprietary resources, the silent failures in CoreMIDI &mdash; only became visible when I was building something that actually needed to work.</p>
+
+                <p>The path was: build a small app, hit walls, understand what the walls actually are, build the library to handle them. That cycle worked. Not efficiently, not elegantly &mdash; but it led somewhere real.</p>
+
+                <blockquote>
+                    <p>Build a small app, hit walls, understand what the walls actually are, then build the library to handle them. It&rsquo;s not an efficient path. But it leads somewhere real.</p>
+                </blockquote>
+
+                <h2>Where This Goes</h2>
+
+                <p>The MIDI 2.0 ecosystem is still early. OS support is finally in place. Hardware is arriving. DAW support is uneven. Cross-vendor interoperability is theoretical.</p>
+
+                <p>There&rsquo;s real work still to do on MIDI2Kit &mdash; more device support, validated documentation, sample applications. But the foundation is there: a library that handles real-world MIDI 2.0 on Apple platforms, including all the things that work differently from what the spec implies.</p>
+
+                <p>If you&rsquo;re building something with MIDI 2.0 on iOS or macOS, I&rsquo;d love to know what you run into. The whole point of putting this work into an open library was so that the next person doesn&rsquo;t start from scratch.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Start Building with MIDI2Kit</h3>
+                    <p>Open source, MIT licensed. Handles the reality of MIDI 2.0 so your app doesn&rsquo;t have to.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Related Articles -->
+                <h2>Related Articles</h2>
+                <ul>
+                    <li><a href="2026-03-31-midi2-journey-09-apple-vs-korg.html">Part 9: Why Apple Can&rsquo;t Finish MIDI 2.0 (and Why KORG Can)</a></li>
+                    <li><a href="2026-03-08-midi2-ecosystem-2026.html">MIDI 2.0 Ecosystem in 2026: Windows Support, New Hardware, and What It Means for Swift Developers</a></li>
+                    <li><a href="2026-03-08-introducing-midi2kit.html">Introducing MIDI2Kit &mdash; MIDI 2.0 for Swift</a></li>
+                </ul>
+
+                <!-- Series Navigation -->
+                <div class="post-nav">
+                    <a href="2026-03-31-midi2-journey-09-apple-vs-korg.html">&larr; Part 9: Apple vs. KORG</a>
+                    <a href="/blog/">All Posts &rarr;</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reverse Engineering KORG's MIDI 2.0 Protocol | MIDI2Kit Blog</title>
+    <script src="/assets/analytics.js"></script>
+    <script src="/assets/ga4-events.js"></script>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    <meta name="description" content="How I reverse-engineered KORG's proprietary MIDI-CI extensions by intercepting raw SysEx traffic between KORG KeyStage and KORG Module Pro — manufacturerName gating, undocumented resources, and the LCD freeze that taught me a hard lesson about PE Notify.">
+    <meta property="og:title" content="Reverse Engineering KORG's MIDI 2.0 Protocol">
+    <meta property="og:description" content="How I reverse-engineered KORG's proprietary MIDI-CI extensions by intercepting raw SysEx traffic between KORG KeyStage and KORG Module Pro.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://midi2kit.dev/blog/2026-03-31-midi2-journey-04-korg-reverse-engineering.html">
+    <meta property="article:published_time" content="2026-03-31">
+    <meta property="article:series" content="Building MIDI2Kit">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Reverse Engineering KORG's MIDI 2.0 Protocol">
+    <meta name="twitter:description" content="How I reverse-engineered KORG's proprietary MIDI-CI extensions by intercepting raw SysEx traffic between KORG KeyStage and KORG Module Pro.">
+    <link rel="canonical" href="https://midi2kit.dev/blog/2026-03-31-midi2-journey-04-korg-reverse-engineering.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Reverse Engineering KORG's MIDI 2.0 Protocol",
+      "datePublished": "2026-03-31",
+      "dateModified": "2026-03-31",
+      "author": { "@type": "Person", "name": "hakaru" },
+      "publisher": { "@type": "Organization", "name": "MIDI2Kit", "url": "https://midi2kit.dev/" },
+      "mainEntityOfPage": { "@type": "WebPage", "@id": "https://midi2kit.dev/blog/2026-03-31-midi2-journey-04-korg-reverse-engineering.html" },
+      "description": "How I reverse-engineered KORG's proprietary MIDI-CI extensions by intercepting raw SysEx traffic between KORG KeyStage and KORG Module Pro — manufacturerName gating, undocumented resources, and the LCD freeze that taught me a hard lesson about PE Notify.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "BlogSeries",
+        "name": "Building MIDI2Kit",
+        "position": 4
+      }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --bg-code: #0d1117;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --text-tertiary: #6e6e73;
+            --accent-blue: #0a84ff;
+            --accent-blue-light: #409cff;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #c5dff0 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text-primary); }
+
+        .nav-github {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .nav-github:hover { background: #252525; }
+
+        /* Post Header */
+        .post-header {
+            padding: 140px 24px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .post-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .post-header .container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .post-tag {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .post-header h1 {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Post Body */
+        .post-body {
+            padding: 60px 24px 120px;
+        }
+
+        .post-body .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .post-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+
+        .post-content p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .post-content li {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .post-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .post-content a {
+            color: var(--accent-blue-light);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .post-content a:hover {
+            border-bottom-color: var(--accent-blue-light);
+        }
+
+        .post-content pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .post-content code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .post-content p code, .post-content li code {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid var(--accent-blue);
+            padding: 16px 24px;
+            margin: 24px 0;
+            background: rgba(10, 132, 255, 0.05);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .post-content blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content table th {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .post-content table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* CTA */
+        .post-cta {
+            margin-top: 56px;
+            padding: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .post-cta h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .post-cta p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .post-cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-blue-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: #252525;
+            transform: translateY(-2px);
+        }
+
+        /* Series Nav */
+        .series-nav {
+            margin-top: 56px;
+            padding: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .series-nav-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .series-nav-links {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .series-nav-link {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            text-decoration: none;
+            flex: 1;
+        }
+
+        .series-nav-link.next {
+            text-align: right;
+        }
+
+        .series-nav-direction {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .series-nav-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-blue-light);
+            transition: color 0.2s;
+        }
+
+        .series-nav-link:hover .series-nav-title {
+            color: var(--text-primary);
+        }
+
+        /* Post Nav */
+        .post-nav {
+            margin-top: 32px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .post-nav a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .post-nav a:hover { color: var(--text-primary); }
+
+        /* Footer */
+        footer {
+            padding: 48px 24px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover { color: var(--text-primary); }
+
+        .footer-copy {
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .post-header h1 { font-size: 28px; }
+            .post-content h2 { font-size: 22px; }
+            .post-cta { padding: 28px; }
+            .post-cta-actions { flex-direction: column; align-items: center; }
+            .series-nav-links { flex-direction: column; }
+            .series-nav-link.next { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-icon">M2</div>
+                <span>MIDI2Kit</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/#quickstart">Quick Start</a></li>
+                <li><a href="/docs/">Documentation</a></li>
+                <li><a href="/guides/">Guides</a></li>
+                <li><a href="/api/documentation/midi2kit/">API Reference</a></li>
+                <li><a href="/apps/">Apps</a></li>
+                <li><a href="/blog/">Blog</a></li>
+            </ul>
+            <a href="https://github.com/midi2kit" class="nav-github">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <!-- Post Header -->
+    <section class="post-header">
+        <div class="container">
+            <div class="post-meta">
+                <span>March 31, 2026</span>
+                <span class="post-tag">Series</span>
+                <span>Part 4 of 10</span>
+                <span>9 min read</span>
+            </div>
+            <h1>Reverse Engineering KORG&rsquo;s MIDI 2.0 Protocol</h1>
+            <p class="post-subtitle">KORG KeyStage and KORG Module Pro speak a dialect of MIDI-CI that isn&rsquo;t documented anywhere. I found out what it was by intercepting their traffic. This is what I learned &mdash; and the bugs I introduced along the way.</p>
+        </div>
+    </section>
+
+    <!-- Post Body -->
+    <section class="post-body">
+        <div class="container">
+            <div class="post-content">
+
+                <h2>The Right Tool for Undocumented Protocols</h2>
+
+                <p>When documentation doesn&rsquo;t exist, you go to the source. The fastest way to understand what KORG devices are actually doing over MIDI-CI was to watch them talk to each other.</p>
+
+                <p>MIDI2Kit has a debug-only PE sniffer mode built in. When active, it disables the PE Responder and switches to passive recording &mdash; every MIDI-CI SysEx message gets captured verbatim without sending any responses. I put a KORG KeyStage and a copy of KORG Module Pro on the same MIDI bus, fired up the sniffer, and started watching.</p>
+
+                <p>What follows is a tour of everything I found.</p>
+
+                <h2>The manufacturerName Gate</h2>
+
+                <p>This was the first surprise and, honestly, it&rsquo;s kind of clever. When KORG KeyStage receives a DeviceInfo response from a connected device, it checks the <code>manufacturerName</code> field. Only when that field contains exactly <code>"KORG"</code> does KeyStage ask for KORG&rsquo;s proprietary resources.</p>
+
+                <p>Translation: if you want your app to integrate fully with KeyStage &mdash; sound names on the LCD, parameter names on the knobs &mdash; you have to identify yourself as KORG.</p>
+
+<pre><code class="language-swift">// In the DeviceInfo response
+{"manufacturerName":"KORG","productName":"M2DX DX7 Synthesizer"}</code></pre>
+
+                <p>You also set <code>manufacturerID: .korg</code> in the MIDI-CI Device Identity. This isn&rsquo;t technically a spec violation &mdash; <code>manufacturerName</code> is a free-text field and the spec doesn&rsquo;t restrict what you put there. But it&rsquo;s definitely not something you&rsquo;d expect to be necessary. The MIDI-CI spec envisions capability negotiation based on what a device can do, not who made it.</p>
+
+                <p>KORG presumably implemented it this way because it was the simplest gate to build. Whatever the reason, you have to work with it.</p>
+
+                <h2>KORG&rsquo;s Proprietary Resources</h2>
+
+                <p>Once you pass the <code>manufacturerName</code> check, KeyStage starts requesting resources that aren&rsquo;t in the MIDI 2.0 spec at all.</p>
+
+                <h3>X-ProgramEdit</h3>
+
+                <p>This resource carries the current program name and CC values. It&rsquo;s what powers the LCD display on the KeyStage &mdash; when you switch sounds in your app, KeyStage knows what to show because it reads this resource.</p>
+
+                <p>The format has some quirks. Program names must follow a specific <code>NUMBER:NAME</code> format: <code>"1:E.PIANO 1"</code>. One-based numbering, colon separator, then the name. That format matches what KORG Module uses internally, and KeyStage expects the same format from any app that claims to be KORG. If you send the name in a different format, the display doesn&rsquo;t update correctly.</p>
+
+                <p>CC values come back in a <code>currentValues</code> array &mdash; another non-standard field with no PE spec equivalent.</p>
+
+                <h3>X-ParameterList</h3>
+
+                <p>This resource defines the parameters available for CC control: names, CC numbers, default values. KeyStage uses this to label its hardware knobs and sliders. When your app provides this resource, the physical controls on the keyboard show meaningful parameter names instead of generic CC numbers.</p>
+
+                <h3>JSONSchema</h3>
+
+                <p>Before requesting either of the above, KeyStage fetches schema definitions: <code>parameterListSchema</code> and <code>programEditSchema</code>. These describe the expected data format for the resources that follow. Interestingly, KORG sends these schemas as inline JSON objects rather than schema name strings &mdash; which is another point where their implementation diverges from the spec (as covered in <a href="2026-03-31-midi2-journey-03-spec-darkness.html">Part 3</a>).</p>
+
+                <h2>The PE Notify Echo Loop</h2>
+
+                <p>This is the one that cost me real debugging time.</p>
+
+                <p>The scenario: KeyStage sends a CC value change over regular MIDI. My app receives it and updates the corresponding parameter. Because the parameter changed, my code sends a PE Notify to all subscribers &mdash; which includes KeyStage itself, since it&rsquo;s subscribed to the resource.</p>
+
+                <p>KeyStage receives the PE Notify. Its internal PE processor tries to handle it. But the update it triggered was the same change it just sent, so it&rsquo;s seeing its own action reflected back. When this happens fast enough or in enough volume, KeyStage&rsquo;s PE processor falls behind and the LCD freezes.</p>
+
+                <p>The fix is straightforward once you understand the cause: track where each CC change originated. Changes that came in via MIDI don&rsquo;t need a PE Notify echo &mdash; the sender already knows about the change. Only changes triggered by the user interface (or other non-MIDI sources) should generate PE Notify messages.</p>
+
+                <p>This required adding an input source flag to CC change events throughout the codebase. Not difficult, but it touched a lot of places, and the symptom (LCD freeze) was confusing enough that it took a while to trace back to the root cause.</p>
+
+                <blockquote>
+                    <p>The lesson: when you&rsquo;re both a PE Initiator and a PE Responder on the same bus, you need to track the origin of every state change to avoid feedback loops.</p>
+                </blockquote>
+
+                <h2>PE Initiator-Only: The Mode Nobody Documents</h2>
+
+                <p>The most surprising discovery in this whole investigation was about KORG Module Pro&rsquo;s PE behavior.</p>
+
+                <p>The MIDI 2.0 PE spec describes Initiators (devices that send requests) and Responders (devices that answer them). It describes how sessions work. What it doesn&rsquo;t describe is a device that only participates as an Initiator and never responds to incoming requests.</p>
+
+                <p>KORG Module Pro is exactly that. If you send a PE GET request to it, nothing comes back. Here&rsquo;s the log output from my sniffer:</p>
+
+<pre><code class="language-plaintext">PE: All dests tried, no response. KORG likely PE Initiator-only.
+PE: (KORG queries US, but doesn't respond to PE GET)</code></pre>
+
+                <p>KORG Module queries your app for its resources. But if you turn it around and query KORG Module, you get silence. PE Capability Reply has no flag to indicate this &mdash; there&rsquo;s no way to know in advance that a device is Initiator-only. You find out when your requests time out.</p>
+
+                <p>The defensive approach: maintain a per-device capability map. When PE requests to a device consistently produce no response (not NAK &mdash; just silence), mark it as Initiator-only and stop sending requests. This should really be something the spec allows devices to declare, but for now it has to be inferred.</p>
+
+                <h2>The 200ms Discovery Re-Send Mystery</h2>
+
+                <p>Here&rsquo;s a protocol timing quirk that I could only find through trial and error.</p>
+
+                <p>When KeyStage sends a Discovery Inquiry (sub-ID2: <code>0x70</code>), the right response is to send your own Discovery in return. But there&rsquo;s a catch: if you respond immediately, KeyStage ignores you. The PE session never establishes.</p>
+
+                <p>The magic number is 200 milliseconds. Wait 200ms after receiving the Discovery Inquiry, then send your own Discovery. At that point, KeyStage responds correctly and the session proceeds.</p>
+
+                <p>Why 200ms? I genuinely don&rsquo;t know. It&rsquo;s not in any documentation. It&rsquo;s not derivable from the spec. I found it by starting at 0ms (fails), trying 100ms (fails), 150ms (fails sometimes), 200ms (works consistently). It could be an internal initialization delay in KeyStage&rsquo;s firmware, or it could be a debounce window, or it could be something else entirely. Whatever it is, you have to accommodate it.</p>
+
+                <h2>Fixed MUID for Session Persistence</h2>
+
+                <p>MIDI-CI assigns each participant a MUID &mdash; a 28-bit identifier used to address messages. The spec says MUIDs should be randomly generated. MIDI2Kit generates them randomly by default.</p>
+
+                <p>When building support for KORG KeyStage specifically, I discovered something useful: KeyStage remembers the MUID of the last device it connected to. If you reconnect with the same MUID, KeyStage skips the full Discovery negotiation and resumes the previous PE session directly. Reconnection is nearly instant.</p>
+
+                <p>With a random MUID, every connection looks like a new device. KeyStage runs through the full negotiation sequence every time. It works, but it&rsquo;s noticeably slower.</p>
+
+                <p>M2DX uses a fixed MUID (<code>0x5404629</code>) for this reason. The trade-off is that if two instances of the app are running simultaneously, they share a MUID, which would cause routing problems. For a single-instance instrument app, the benefit of instant reconnection outweighs that risk.</p>
+
+                <h2>What the Sniffer Made Possible</h2>
+
+                <p>Every discovery I described above came from the PE sniffer &mdash; from reading raw hex dumps of SysEx traffic between devices that weren&rsquo;t designed to be observed. None of it came from documentation.</p>
+
+                <p>The sniffer itself is a few hundred lines of <code>#if DEBUG</code>-gated code in MIDI2Kit. It decodes UMP MIDI 2.0 messages to human-readable form, hex-dumps raw CI SysEx, and logs everything with timestamps. It was the most valuable debugging tool I built during this project.</p>
+
+                <p>KORG devices are a solved problem in MIDI2Kit now. The <code>manufacturerName</code> gating, the proprietary resources, the Initiator-only constraint, the Discovery timing, the PE Notify echo suppression &mdash; all of it is handled automatically. Third-party Swift developers building apps that target KORG hardware don&rsquo;t have to reverse-engineer any of this themselves. That&rsquo;s the whole point of the library.</p>
+
+                <!-- CTA -->
+                <div class="post-cta">
+                    <h3>Get Started with MIDI2Kit</h3>
+                    <p>The MIDI 2.0 library that handles the messy reality of real-world devices. Open source, MIT licensed.</p>
+                    <div class="post-cta-actions">
+                        <a href="https://github.com/midi2kit/MIDI2Kit-SDK" class="btn btn-primary" target="_blank" rel="noopener">View on GitHub</a>
+                        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+                    </div>
+                </div>
+
+                <!-- Series Navigation -->
+                <div class="series-nav">
+                    <div class="series-nav-label">Building MIDI2Kit &mdash; Part 4 of 10</div>
+                    <div class="series-nav-links">
+                        <a href="2026-03-31-midi2-journey-03-spec-darkness.html" class="series-nav-link prev">
+                            <span class="series-nav-direction">&larr; Previous</span>
+                            <span class="series-nav-title">The Darkness Inside the MIDI 2.0 Spec</span>
+                        </a>
+                        <a href="#" class="series-nav-link next">
+                            <span class="series-nav-direction">Next &rarr;</span>
+                            <span class="series-nav-title">Coming Soon: Part 5</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Post Nav -->
+                <div class="post-nav">
+                    <a href="/blog/">&larr; All Posts</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://github.com/midi2kit">GitHub</a>
+            <a href="/docs/">Documentation</a>
+            <a href="/apps/">Apps</a>
+            <a href="https://midi2kit.dev">midi2kit.dev</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 MIDI2Kit. Released under the MIT License.</p>
+    </footer>
+
+    <script>hljs.highlightAll();</script>
+</body>
+</html>
