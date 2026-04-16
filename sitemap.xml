@@ -7,27 +7,82 @@
   </url>
   <url>
     <loc>https://midi2kit.dev/blog/</loc>
-    <lastmod>2026-03-08</lastmod>
+    <lastmod>2026-03-31</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/blog/2026-03-08-introducing-midi2kit.html</loc>
+    <loc>https://midi2kit.dev/blog/2026-03-08-introducing-midi2kit</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/blog/2026-03-08-swift-midi2-getting-started.html</loc>
+    <loc>https://midi2kit.dev/blog/2026-03-08-swift-midi2-getting-started</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/blog/2026-03-08-midi2-ecosystem-2026.html</loc>
+    <loc>https://midi2kit.dev/blog/2026-03-08-midi2-ecosystem-2026</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization.html</loc>
+    <loc>https://midi2kit.dev/blog/2026-03-29-macos15-midi2-modernization</loc>
     <lastmod>2026-03-29</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-30-why-apple-cant-finish-midi2</loc>
+    <lastmod>2026-03-30</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-01-introduction</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-02-simple-midi-controller</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-03-spec-darkness</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-04-korg-reverse-engineering</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-05-ble-midi-mystery</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-06-midi2kit-birth</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-07-iphone-only-limitation</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-08-macos15-new-apis</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-09-apple-vs-korg</loc>
+    <lastmod>2026-03-31</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://midi2kit.dev/blog/2026-03-31-midi2-journey-10-whats-next</loc>
+    <lastmod>2026-03-31</lastmod>
     <priority>0.8</priority>
   </url>
   <url>
@@ -36,27 +91,27 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/guides/architecture.html</loc>
+    <loc>https://midi2kit.dev/guides/architecture</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/guides/inter-app-midi-ci.html</loc>
+    <loc>https://midi2kit.dev/guides/inter-app-midi-ci</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/guides/korg-ble-midi.html</loc>
+    <loc>https://midi2kit.dev/guides/korg-ble-midi</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/guides/mockdevice.html</loc>
+    <loc>https://midi2kit.dev/guides/mockdevice</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/guides/property-exchange.html</loc>
+    <loc>https://midi2kit.dev/guides/property-exchange</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.7</priority>
   </url>
@@ -66,27 +121,27 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/docs/midi2kit.html</loc>
+    <loc>https://midi2kit.dev/docs/midi2kit</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/docs/midi2ci.html</loc>
+    <loc>https://midi2kit.dev/docs/midi2ci</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/docs/midi2core.html</loc>
+    <loc>https://midi2kit.dev/docs/midi2core</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/docs/midi2pe.html</loc>
+    <loc>https://midi2kit.dev/docs/midi2pe</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://midi2kit.dev/docs/midi2transport.html</loc>
+    <loc>https://midi2kit.dev/docs/midi2transport</loc>
     <lastmod>2026-03-08</lastmod>
     <priority>0.6</priority>
   </url>
